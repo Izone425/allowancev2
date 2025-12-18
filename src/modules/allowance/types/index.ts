@@ -17,6 +17,12 @@ export enum AllowanceAmountMode {
   FORMULA = 'FORMULA'
 }
 
+// Daily allowance calculation mode
+export enum DailyCalculationMode {
+  FIXED_DAILY = 'FIXED_DAILY',       // Fixed amount per day
+  HOURLY_RATE = 'HOURLY_RATE'        // Rate per hour with conditions
+}
+
 export enum AllowanceStatus {
   ACTIVE = 'ACTIVE',
   ARCHIVED = 'ARCHIVED'
@@ -71,7 +77,8 @@ export enum AttendanceCriteriaField {
   EARLY_OUT = 'EARLY_OUT',
   BREAK_DURATION = 'BREAK_DURATION',
   TIME_IN = 'TIME_IN',
-  TIME_OUT = 'TIME_OUT'
+  TIME_OUT = 'TIME_OUT',
+  WORKING_TIME = 'WORKING_TIME'  // Combined start & end time range
 }
 
 export enum AttendanceCriteriaCondition {
@@ -104,6 +111,7 @@ export interface AllowanceTemplate {
 
   // Type-specific fields
   // DAILY
+  dailyCalculationMode?: DailyCalculationMode;
   ratePerDay?: number;
   includeNonWorkingDays?: boolean;
   applyOnNormalWorkday?: boolean;
@@ -114,6 +122,8 @@ export interface AllowanceTemplate {
   applyOnShifts?: string[];
   filterByWorkLocation?: boolean;
   applyOnWorkLocations?: string[];
+  // Hourly rate configuration (when dailyCalculationMode = HOURLY_RATE)
+  hourlyRateConfig?: HourlyRateConfig;
 
   // MONTHLY
   prorateByJoinDate?: boolean;
@@ -189,16 +199,21 @@ export interface CriteriaSet {
 // ATTENDANCE CRITERIA INTERFACES
 // -----------------------------------------------------------------------------
 
+export interface AttendanceTimeValue {
+  hours: number;
+  minutes: number;
+}
+
+export interface AttendanceTimeRangeValue {
+  startTime: AttendanceTimeValue;
+  endTime: AttendanceTimeValue;
+}
+
 export interface AttendanceCriteriaRule {
   id: string;
   field: AttendanceCriteriaField;
   condition: AttendanceCriteriaCondition;
-  value: AttendanceTimeValue;
-}
-
-export interface AttendanceTimeValue {
-  hours: number;
-  minutes: number;
+  value: AttendanceTimeValue | AttendanceTimeRangeValue;  // TimeRange for WORKING_TIME field
 }
 
 export interface AttendanceCriteriaGroup {
@@ -210,6 +225,16 @@ export interface AttendanceCriteriaGroup {
 export interface AttendanceCriteriaSet {
   groupOperator: CriteriaGroupOperator; // AND/OR between groups
   groups: AttendanceCriteriaGroup[];
+}
+
+// -----------------------------------------------------------------------------
+// HOURLY RATE CONFIGURATION (for Daily Allowance)
+// -----------------------------------------------------------------------------
+
+export interface HourlyRateConfig {
+  ratePerHour: number;                    // e.g., RM 5 per hour
+  dailyCap: number | null;                // e.g., RM 20 max per day (null = no cap)
+  minWorkingHours: AttendanceTimeValue | null;  // Minimum hours to qualify (null = no minimum)
 }
 
 // -----------------------------------------------------------------------------
@@ -367,6 +392,8 @@ export interface TemplateInfoFormData {
   currency: string;
   taxable: boolean;
   prorate: boolean;
+  // Daily specific
+  dailyCalculationMode: DailyCalculationMode;
   ratePerDay: number | null;
   includeNonWorkingDays: boolean;
   applyOnNormalWorkday: boolean;
@@ -377,10 +404,15 @@ export interface TemplateInfoFormData {
   applyOnShifts: string[];
   filterByWorkLocation: boolean;
   applyOnWorkLocations: string[];
+  // Hourly rate config (when dailyCalculationMode = HOURLY_RATE)
+  hourlyRateConfig: HourlyRateConfig;
+  // Monthly specific
   prorateByJoinDate: boolean;
   prorateByLeaveDate: boolean;
+  // One-off specific
   payoutDate: Date | null;
   payoutMonth: string;
+  // Common
   effectiveStart: Date | null;
   effectiveEnd: Date | null;
   status: AllowanceStatus;

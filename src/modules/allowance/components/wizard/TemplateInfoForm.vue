@@ -41,8 +41,36 @@
             <small v-if="errors.get('type')" class="p-error">{{ errors.get('type') }}</small>
           </div>
 
-          <!-- Amount field for Daily type -->
+          <!-- Calculation Mode for Daily type -->
           <div v-if="formData.type === 'DAILY'" class="form-field">
+            <label class="field-label required">Calculation Mode</label>
+            <div class="calc-mode-selector">
+              <label
+                v-for="mode in dailyCalculationModeOptions"
+                :key="mode.value"
+                class="calc-mode-option"
+                :class="{ selected: formData.dailyCalculationMode === mode.value }"
+              >
+                <input
+                  type="radio"
+                  :value="mode.value"
+                  :checked="formData.dailyCalculationMode === mode.value"
+                  @change="emit('update', 'dailyCalculationMode', mode.value)"
+                  class="hidden-radio"
+                />
+                <i :class="mode.icon" class="mode-icon"></i>
+                <div class="mode-content">
+                  <span class="mode-label">{{ mode.label }}</span>
+                  <span class="mode-desc">{{ mode.description }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fixed Daily Amount (when FIXED_DAILY mode) -->
+        <div v-if="formData.type === 'DAILY' && formData.dailyCalculationMode === DailyCalculationMode.FIXED_DAILY" class="form-row">
+          <div class="form-field">
             <label for="amount" class="field-label required">Amount (per day)</label>
             <div class="input-with-prefix">
               <span class="input-prefix">RM</span>
@@ -61,6 +89,14 @@
             <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
           </div>
         </div>
+
+        <!-- Hourly Rate Configuration (when HOURLY_RATE mode) - Inline -->
+        <HourlyRateSectionInline
+          v-if="formData.type === 'DAILY' && formData.dailyCalculationMode === DailyCalculationMode.HOURLY_RATE"
+          :modelValue="formData.hourlyRateConfig"
+          @update:modelValue="emit('update', 'hourlyRateConfig', $event)"
+          :currency="formData.currency"
+        />
 
         <!-- Fields for Non-Daily types -->
         <template v-if="formData.type && formData.type !== 'DAILY'">
@@ -384,15 +420,18 @@ import Checkbox from 'primevue/checkbox';
 import MultiSelect from 'primevue/multiselect';
 // Custom Components
 import AttendanceCriteriaBuilder from './AttendanceCriteriaBuilder.vue';
+import HourlyRateSectionInline from './HourlyRateSectionInline.vue';
 // Constants
 import {
   ALLOWANCE_TYPE_OPTIONS,
   AMOUNT_MODE_OPTIONS,
   SHIFT_OPTIONS,
-  WORK_LOCATION_OPTIONS
+  WORK_LOCATION_OPTIONS,
+  DAILY_CALCULATION_MODE_OPTIONS
 } from '../../constants';
 // Types
 import type { TemplateInfoFormData, AllowanceType } from '../../types';
+import { DailyCalculationMode } from '../../types';
 
 // ---------------------------------------------------------------------------
 // PROPS & EMITS
@@ -418,6 +457,7 @@ const typeOptions = ALLOWANCE_TYPE_OPTIONS;
 const amountModeOptions = AMOUNT_MODE_OPTIONS;
 const shiftOptions = SHIFT_OPTIONS;
 const workLocationOptions = WORK_LOCATION_OPTIONS;
+const dailyCalculationModeOptions = DAILY_CALCULATION_MODE_OPTIONS;
 
 // ---------------------------------------------------------------------------
 // METHODS
@@ -765,6 +805,84 @@ function getTypeIcon(type: AllowanceType): string {
   padding: 0.125rem 0.375rem;
 }
 
+/* Calculation Mode Selector */
+.calc-mode-selector {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.calc-mode-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calc-mode-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.calc-mode-option.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.hidden-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.calc-mode-option.selected .mode-icon {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.mode-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.mode-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.calc-mode-option.selected .mode-label {
+  color: #1d4ed8;
+}
+
+.mode-desc {
+  font-size: 0.6875rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .form-row {
@@ -787,6 +905,14 @@ function getTypeIcon(type: AllowanceType): string {
   .options-row {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .calc-mode-selector {
+    flex-direction: column;
+  }
+
+  .calc-mode-option {
+    flex: none;
   }
 }
 </style>

@@ -194,7 +194,7 @@ import type {
   CreateAllowanceTemplateRequest,
   AttendanceCriteriaSet
 } from '../types';
-import { CriteriaGroupOperator } from '../types';
+import { CriteriaGroupOperator, DailyCalculationMode } from '../types';
 
 // ---------------------------------------------------------------------------
 // PROPS & EMITS
@@ -454,6 +454,13 @@ async function loadTemplate(): Promise<void> {
       groups: []
     };
 
+    // Default hourly rate config
+    const defaultHourlyRateConfig = {
+      ratePerHour: 0,
+      dailyCap: null,
+      minWorkingHours: null
+    };
+
     // Map template to form data
     setFormData({
       name: template.name,
@@ -467,6 +474,8 @@ async function loadTemplate(): Promise<void> {
       currency: template.currency,
       taxable: template.taxable,
       prorate: template.prorate,
+      // Daily specific
+      dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
       ratePerDay: template.ratePerDay || null,
       includeNonWorkingDays: template.includeNonWorkingDays || false,
       applyOnNormalWorkday: template.applyOnNormalWorkday ?? true,
@@ -477,10 +486,14 @@ async function loadTemplate(): Promise<void> {
       applyOnShifts: template.applyOnShifts || [],
       filterByWorkLocation: template.filterByWorkLocation || false,
       applyOnWorkLocations: template.applyOnWorkLocations || [],
+      hourlyRateConfig: template.hourlyRateConfig || defaultHourlyRateConfig,
+      // Monthly specific
       prorateByJoinDate: template.prorateByJoinDate || false,
       prorateByLeaveDate: template.prorateByLeaveDate || false,
+      // One-off specific
       payoutDate: template.payoutDate ? new Date(template.payoutDate) : null,
       payoutMonth: template.payoutMonth || '',
+      // Common
       effectiveStart: template.effectiveStart ? new Date(template.effectiveStart) : null,
       effectiveEnd: template.effectiveEnd ? new Date(template.effectiveEnd) : null,
       status: template.status,

@@ -10,7 +10,8 @@ import {
   CriteriaOperator,
   CriteriaGroupOperator,
   AttendanceCriteriaField,
-  AttendanceCriteriaCondition
+  AttendanceCriteriaCondition,
+  DailyCalculationMode
 } from '../types';
 
 // -----------------------------------------------------------------------------
@@ -100,6 +101,25 @@ export const WORK_LOCATION_OPTIONS = [
   { value: 'SITE', label: 'Site / Field Work' },
   { value: 'BRANCH', label: 'Branch Office' },
   { value: 'CLIENT', label: 'Client Location' }
+] as const;
+
+// -----------------------------------------------------------------------------
+// DAILY CALCULATION MODE OPTIONS
+// -----------------------------------------------------------------------------
+
+export const DAILY_CALCULATION_MODE_OPTIONS = [
+  {
+    value: DailyCalculationMode.FIXED_DAILY,
+    label: 'Fixed Daily',
+    description: 'Fixed amount per eligible day',
+    icon: 'pi pi-wallet'
+  },
+  {
+    value: DailyCalculationMode.HOURLY_RATE,
+    label: 'Hourly Rate',
+    description: 'Rate per hour with time conditions and daily cap',
+    icon: 'pi pi-clock'
+  }
 ] as const;
 
 // -----------------------------------------------------------------------------
@@ -240,6 +260,10 @@ export const ATTENDANCE_CRITERIA_FIELD_OPTIONS = [
   {
     value: AttendanceCriteriaField.TIME_OUT,
     label: 'Time Out'
+  },
+  {
+    value: AttendanceCriteriaField.WORKING_TIME,
+    label: 'Working Starts & Working Ends'
   }
 ] as const;
 

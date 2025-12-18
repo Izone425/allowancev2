@@ -31,10 +31,12 @@
         </div>
 
         <!-- Condition Group -->
-        <div class="condition-group" :class="{ 'has-multiple': group.rules.length > 1 }">
-          <!-- Group Badge (only show if multiple groups) -->
-          <div v-if="modelValue.groups.length > 1" class="group-badge" :style="{ '--group-color': getGroupColor(groupIndex) }">
-            <span class="badge-number">{{ groupIndex + 1 }}</span>
+        <div class="condition-group" :class="{ 'has-multiple': group.rules.length > 1, 'has-badge': modelValue.groups.length > 1 }">
+          <!-- Group Header with Badge (only show if multiple groups) -->
+          <div v-if="modelValue.groups.length > 1" class="group-header">
+            <div class="group-badge" :style="{ '--group-color': getGroupColor(groupIndex) }">
+              <span class="badge-number">{{ groupIndex + 1 }}</span>
+            </div>
             <button
               class="badge-remove"
               @click="removeGroup(groupIndex)"
@@ -73,8 +75,8 @@
                     />
                   </div>
 
-                  <!-- Operator Dropdown -->
-                  <div class="field-group operator-select">
+                  <!-- Operator Dropdown (hidden for WORKING_TIME) -->
+                  <div v-if="rule.field !== 'WORKING_TIME'" class="field-group operator-select">
                     <label class="field-label">Operator</label>
                     <Dropdown
                       :modelValue="rule.condition"
@@ -87,13 +89,13 @@
                     />
                   </div>
 
-                  <!-- Time Value -->
-                  <div class="field-group value-input">
+                  <!-- Time Value (Regular fields) -->
+                  <div v-if="rule.field !== 'WORKING_TIME'" class="field-group value-input">
                     <label class="field-label">Value</label>
                     <div class="time-value-group">
                       <div class="time-segment">
                         <InputNumber
-                          :modelValue="rule.value.hours"
+                          :modelValue="getSimpleTimeValue(rule.value).hours"
                           @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'hours', val ?? 0)"
                           :min="0"
                           :max="99"
@@ -105,7 +107,7 @@
                       <span class="time-colon">:</span>
                       <div class="time-segment">
                         <InputNumber
-                          :modelValue="rule.value.minutes"
+                          :modelValue="getSimpleTimeValue(rule.value).minutes"
                           @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'minutes', val ?? 0)"
                           :min="0"
                           :max="59"
@@ -113,6 +115,44 @@
                           :inputClass="'time-input-field'"
                         />
                         <span class="time-label">min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Time Range Value (WORKING_TIME field) -->
+                  <div v-else class="field-group value-input-wide">
+                    <label class="field-label">Time Start & End</label>
+                    <div class="time-range-group">
+                      <!-- Start Time -->
+                      <div class="time-range-segment">
+                        <span class="time-range-label">START</span>
+                        <div class="time-picker-24h">
+                          <input
+                            type="text"
+                            :value="formatTime24(getTimeRangeValue(rule.value).startTime)"
+                            @input="(e) => handleTimeInput(e, groupIndex, ruleIndex, 'startTime')"
+                            @blur="(e) => handleTimeBlur(e, groupIndex, ruleIndex, 'startTime')"
+                            class="time-input-24h"
+                            placeholder="00:00"
+                            maxlength="5"
+                          />
+                        </div>
+                      </div>
+                      <span class="time-range-separator">to</span>
+                      <!-- End Time -->
+                      <div class="time-range-segment">
+                        <span class="time-range-label">END</span>
+                        <div class="time-picker-24h">
+                          <input
+                            type="text"
+                            :value="formatTime24(getTimeRangeValue(rule.value).endTime)"
+                            @input="(e) => handleTimeInput(e, groupIndex, ruleIndex, 'endTime')"
+                            @blur="(e) => handleTimeBlur(e, groupIndex, ruleIndex, 'endTime')"
+                            class="time-input-24h"
+                            placeholder="00:00"
+                            maxlength="5"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -166,9 +206,11 @@ import type {
   AttendanceCriteriaGroup,
   AttendanceCriteriaRule,
   AttendanceCriteriaField,
-  AttendanceCriteriaCondition
+  AttendanceCriteriaCondition,
+  AttendanceTimeValue,
+  AttendanceTimeRangeValue
 } from '../../types';
-import { CriteriaGroupOperator } from '../../types';
+import { CriteriaGroupOperator, AttendanceCriteriaField as AttendanceFieldEnum } from '../../types';
 // Constants
 import {
   ATTENDANCE_CRITERIA_FIELD_OPTIONS,
@@ -216,6 +258,115 @@ function generateId(): string {
 
 function getGroupColor(index: number): string {
   return groupColors[index % groupColors.length];
+}
+
+// Type guards for time values
+function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): value is AttendanceTimeRangeValue {
+  return 'startTime' in value && 'endTime' in value;
+}
+
+// Get simple time value (for regular fields)
+function getSimpleTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): AttendanceTimeValue {
+  if (isTimeRangeValue(value)) {
+    return { hours: 0, minutes: 0 };
+  }
+  return value;
+}
+
+// Get time range value (for WORKING_TIME field)
+function getTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): AttendanceTimeRangeValue {
+  if (isTimeRangeValue(value)) {
+    return value;
+  }
+  return {
+    startTime: { hours: 0, minutes: 0 },
+    endTime: { hours: 0, minutes: 0 }
+  };
+}
+
+// Create default time range value
+function createDefaultTimeRangeValue(): AttendanceTimeRangeValue {
+  return {
+    startTime: { hours: 0, minutes: 0 },
+    endTime: { hours: 0, minutes: 0 }
+  };
+}
+
+// Format time as HH:MM (24-hour format)
+function formatTime24(time: AttendanceTimeValue): string {
+  const hours = String(time.hours).padStart(2, '0');
+  const minutes = String(time.minutes).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+// Parse time string to hours and minutes
+function parseTime24(timeStr: string): { hours: number; minutes: number } {
+  const cleaned = timeStr.replace(/[^\d:]/g, '');
+  const parts = cleaned.split(':');
+
+  let hours = 0;
+  let minutes = 0;
+
+  if (parts.length >= 1 && parts[0]) {
+    hours = Math.min(23, Math.max(0, parseInt(parts[0]) || 0));
+  }
+  if (parts.length >= 2 && parts[1]) {
+    minutes = Math.min(59, Math.max(0, parseInt(parts[1]) || 0));
+  }
+
+  return { hours, minutes };
+}
+
+// Handle time input with auto-formatting
+function handleTimeInput(
+  event: Event,
+  groupIndex: number,
+  ruleIndex: number,
+  timeType: 'startTime' | 'endTime'
+): void {
+  const input = event.target as HTMLInputElement;
+  let value = input.value.replace(/[^\d:]/g, '');
+
+  // Auto-insert colon after 2 digits if not present
+  if (value.length === 2 && !value.includes(':')) {
+    value = value + ':';
+    input.value = value;
+  }
+
+  // Limit to HH:MM format
+  if (value.length > 5) {
+    value = value.substring(0, 5);
+    input.value = value;
+  }
+}
+
+// Handle time blur - validate and update
+function handleTimeBlur(
+  event: Event,
+  groupIndex: number,
+  ruleIndex: number,
+  timeType: 'startTime' | 'endTime'
+): void {
+  const input = event.target as HTMLInputElement;
+  const parsed = parseTime24(input.value);
+
+  // Update the value in the model
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  const currentValue = getTimeRangeValue(newRules[ruleIndex].value);
+
+  newRules[ruleIndex] = {
+    ...newRules[ruleIndex],
+    value: {
+      ...currentValue,
+      [timeType]: parsed
+    }
+  };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+
+  // Update input display to formatted value
+  input.value = formatTime24(parsed);
 }
 
 function createDefaultRule(): AttendanceCriteriaRule {
@@ -301,7 +452,34 @@ function updateRule(
 ): void {
   const newGroups = [...props.modelValue.groups];
   const newRules = [...newGroups[groupIndex].rules];
-  newRules[ruleIndex] = { ...newRules[ruleIndex], [field]: value };
+  const currentRule = newRules[ruleIndex];
+
+  // When changing field, also update the value type accordingly
+  if (field === 'field') {
+    const newField = value as AttendanceCriteriaField;
+    const isWorkingTime = newField === AttendanceFieldEnum.WORKING_TIME;
+    const wasWorkingTime = currentRule.field === AttendanceFieldEnum.WORKING_TIME;
+
+    // Reset value when switching between WORKING_TIME and other fields
+    if (isWorkingTime && !wasWorkingTime) {
+      newRules[ruleIndex] = {
+        ...currentRule,
+        field: newField,
+        value: createDefaultTimeRangeValue()
+      };
+    } else if (!isWorkingTime && wasWorkingTime) {
+      newRules[ruleIndex] = {
+        ...currentRule,
+        field: newField,
+        value: { hours: 0, minutes: 0 }
+      };
+    } else {
+      newRules[ruleIndex] = { ...currentRule, [field]: value };
+    }
+  } else {
+    newRules[ruleIndex] = { ...currentRule, [field]: value };
+  }
+
   newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
   emit('update:modelValue', { ...props.modelValue, groups: newGroups });
 }
@@ -314,9 +492,34 @@ function updateRuleValue(
 ): void {
   const newGroups = [...props.modelValue.groups];
   const newRules = [...newGroups[groupIndex].rules];
+  const currentValue = getSimpleTimeValue(newRules[ruleIndex].value);
   newRules[ruleIndex] = {
     ...newRules[ruleIndex],
-    value: { ...newRules[ruleIndex].value, [field]: value }
+    value: { ...currentValue, [field]: value }
+  };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function updateTimeRangeValue(
+  groupIndex: number,
+  ruleIndex: number,
+  timeType: 'startTime' | 'endTime',
+  field: 'hours' | 'minutes',
+  value: number
+): void {
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  const currentValue = getTimeRangeValue(newRules[ruleIndex].value);
+  newRules[ruleIndex] = {
+    ...newRules[ruleIndex],
+    value: {
+      ...currentValue,
+      [timeType]: {
+        ...currentValue[timeType],
+        [field]: value
+      }
+    }
   };
   newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
   emit('update:modelValue', { ...props.modelValue, groups: newGroups });
@@ -466,38 +669,45 @@ function updateRuleValue(
   border-left: 3px solid var(--group-color, #6366f1);
 }
 
-/* Group Badge */
-.group-badge {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
+/* Group Header */
+.group-header {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  z-index: 1;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Group Badge */
+.group-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .badge-number {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   background: var(--group-color, #6366f1);
   color: #ffffff;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .badge-remove {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: transparent;
   border: none;
   color: #94a3b8;
-  font-size: 0.5rem;
+  font-size: 0.625rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -580,6 +790,81 @@ function updateRuleValue(
 
 .value-input {
   min-width: 150px;
+}
+
+.value-input-wide {
+  min-width: 280px;
+}
+
+/* Time Range Group (for WORKING_TIME) */
+.time-range-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.375rem 0.625rem;
+  height: 34px;
+}
+
+.time-range-segment {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.time-range-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  min-width: 32px;
+}
+
+/* 24-hour Time Picker */
+.time-picker-24h {
+  display: flex;
+  align-items: center;
+}
+
+.time-input-24h {
+  width: 54px;
+  height: 26px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  text-align: center;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  color: #1e293b;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
+}
+
+.time-input-24h::placeholder {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.time-input-24h:hover {
+  border-color: #cbd5e1;
+}
+
+.time-input-24h:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  background: #ffffff;
+}
+
+.time-range-separator {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  padding: 0 0.25rem;
 }
 
 /* Custom Dropdown Styles */
@@ -774,9 +1059,20 @@ function updateRuleValue(
 
   .field-select,
   .operator-select,
-  .value-input {
+  .value-input,
+  .value-input-wide {
     min-width: 100%;
     width: 100%;
+  }
+
+  .time-range-group {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.5rem;
+  }
+
+  .time-range-segment {
+    flex-wrap: wrap;
   }
 
   .rule-actions {
@@ -785,10 +1081,8 @@ function updateRuleValue(
     border-top: 1px solid #f1f5f9;
   }
 
-  .group-badge {
-    position: static;
-    margin-bottom: 0.5rem;
-    padding: 0 0.5rem;
+  .group-header {
+    padding: 0.375rem 0.5rem;
   }
 
   .rule-operator-row {

@@ -5,8 +5,8 @@
 
 import { ref, computed, watch } from 'vue';
 import { allowanceTemplateService } from '../services/allowanceTemplateService';
-import { AllowanceType, AllowanceAmountMode, AllowanceStatus, CriteriaGroupOperator } from '../types';
-import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet } from '../types';
+import { AllowanceType, AllowanceAmountMode, AllowanceStatus, CriteriaGroupOperator, DailyCalculationMode } from '../types';
+import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet, HourlyRateConfig } from '../types';
 import { VALIDATION_MESSAGES } from '../constants';
 
 // Default attendance criteria
@@ -14,6 +14,15 @@ function createDefaultAttendanceCriteria(): AttendanceCriteriaSet {
   return {
     groupOperator: CriteriaGroupOperator.AND,
     groups: []
+  };
+}
+
+// Default hourly rate configuration
+function createDefaultHourlyRateConfig(): HourlyRateConfig {
+  return {
+    ratePerHour: 0,
+    dailyCap: null,
+    minWorkingHours: null
   };
 }
 
@@ -31,6 +40,8 @@ function createDefaultFormData(): TemplateInfoFormData {
     currency: 'MYR',
     taxable: true,
     prorate: false,
+    // Daily specific
+    dailyCalculationMode: DailyCalculationMode.FIXED_DAILY,
     ratePerDay: null,
     includeNonWorkingDays: false,
     applyOnNormalWorkday: true,
@@ -41,11 +52,15 @@ function createDefaultFormData(): TemplateInfoFormData {
     applyOnShifts: [],
     filterByWorkLocation: false,
     applyOnWorkLocations: [],
+    hourlyRateConfig: createDefaultHourlyRateConfig(),
+    // Monthly specific
     prorateByJoinDate: true,
     prorateByLeaveDate: false,
+    // One-off specific
     payoutDate: null,
     payoutMonth: '',
-    effectiveStart: null,
+    // Common
+    effectiveStart: new Date(),
     effectiveEnd: null,
     status: AllowanceStatus.ACTIVE,
     attendanceCriteria: createDefaultAttendanceCriteria()
