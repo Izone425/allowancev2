@@ -1,0 +1,798 @@
+<template>
+  <div class="condition-builder">
+    <!-- Header -->
+    <div class="builder-header">
+      <div class="header-info">
+        <span v-if="modelValue.groups.length > 0" class="condition-count">
+          {{ totalRulesCount }} condition{{ totalRulesCount !== 1 ? 's' : '' }}
+        </span>
+      </div>
+      <Button
+        label="Add Condition"
+        icon="pi pi-plus"
+        size="small"
+        class="add-btn"
+        @click="addCondition"
+      />
+    </div>
+
+    <!-- Conditions List -->
+    <div v-if="modelValue.groups.length > 0" class="conditions-container">
+      <template v-for="(group, groupIndex) in modelValue.groups" :key="group.id">
+        <!-- Group Operator (between groups) -->
+        <div v-if="groupIndex > 0" class="group-operator-row">
+          <div class="operator-line"></div>
+          <div class="operator-switch" @click="toggleGroupOperator">
+            <span class="switch-option" :class="{ active: modelValue.groupOperator === 'AND' }">AND</span>
+            <span class="switch-option" :class="{ active: modelValue.groupOperator === 'OR' }">OR</span>
+            <span class="switch-slider" :class="{ 'is-or': modelValue.groupOperator === 'OR' }"></span>
+          </div>
+          <div class="operator-line"></div>
+        </div>
+
+        <!-- Condition Group -->
+        <div class="condition-group" :class="{ 'has-multiple': group.rules.length > 1 }">
+          <!-- Group Badge (only show if multiple groups) -->
+          <div v-if="modelValue.groups.length > 1" class="group-badge" :style="{ '--group-color': getGroupColor(groupIndex) }">
+            <span class="badge-number">{{ groupIndex + 1 }}</span>
+            <button
+              class="badge-remove"
+              @click="removeGroup(groupIndex)"
+              title="Remove group"
+            >
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+
+          <!-- Rules -->
+          <div class="rules-list">
+            <template v-for="(rule, ruleIndex) in group.rules" :key="rule.id">
+              <!-- Rule Operator (within group) -->
+              <div v-if="ruleIndex > 0" class="rule-operator-row">
+                <div class="operator-switch small" @click="toggleRuleOperator(groupIndex)">
+                  <span class="switch-option" :class="{ active: group.operator === 'AND' }">AND</span>
+                  <span class="switch-option" :class="{ active: group.operator === 'OR' }">OR</span>
+                  <span class="switch-slider" :class="{ 'is-or': group.operator === 'OR' }"></span>
+                </div>
+              </div>
+
+              <!-- Rule Row -->
+              <div class="rule-row">
+                <div class="rule-content">
+                  <!-- Field Dropdown -->
+                  <div class="field-group field-select">
+                    <label class="field-label">Field</label>
+                    <Dropdown
+                      :modelValue="rule.field"
+                      @update:modelValue="(val) => updateRule(groupIndex, ruleIndex, 'field', val)"
+                      :options="criteriaFieldOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Select field"
+                      class="custom-dropdown"
+                    />
+                  </div>
+
+                  <!-- Operator Dropdown -->
+                  <div class="field-group operator-select">
+                    <label class="field-label">Operator</label>
+                    <Dropdown
+                      :modelValue="rule.condition"
+                      @update:modelValue="(val) => updateRule(groupIndex, ruleIndex, 'condition', val)"
+                      :options="conditionOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Op"
+                      class="custom-dropdown operator-dropdown"
+                    />
+                  </div>
+
+                  <!-- Time Value -->
+                  <div class="field-group value-input">
+                    <label class="field-label">Value</label>
+                    <div class="time-value-group">
+                      <div class="time-segment">
+                        <InputNumber
+                          :modelValue="rule.value.hours"
+                          @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'hours', val ?? 0)"
+                          :min="0"
+                          :max="99"
+                          class="time-number"
+                          :inputClass="'time-input-field'"
+                        />
+                        <span class="time-label">hrs</span>
+                      </div>
+                      <span class="time-colon">:</span>
+                      <div class="time-segment">
+                        <InputNumber
+                          :modelValue="rule.value.minutes"
+                          @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'minutes', val ?? 0)"
+                          :min="0"
+                          :max="59"
+                          class="time-number"
+                          :inputClass="'time-input-field'"
+                        />
+                        <span class="time-label">min</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="rule-actions">
+                  <button
+                    class="action-btn add-rule-btn"
+                    @click="addRule(groupIndex)"
+                    title="Add rule to group"
+                  >
+                    <i class="pi pi-plus"></i>
+                  </button>
+                  <button
+                    class="action-btn remove-rule-btn"
+                    @click="removeRule(groupIndex, ruleIndex)"
+                    :disabled="group.rules.length === 1 && modelValue.groups.length === 1"
+                    title="Remove rule"
+                  >
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else class="empty-state">
+      <div class="empty-icon">
+        <i class="pi pi-filter"></i>
+      </div>
+      <p class="empty-title">No conditions defined</p>
+      <p class="empty-desc">Click "Add Condition" to create attendance-based rules</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+// PrimeVue Components
+import Button from 'primevue/button';
+import Dropdown from 'primevue/dropdown';
+import InputNumber from 'primevue/inputnumber';
+// Types
+import type {
+  AttendanceCriteriaSet,
+  AttendanceCriteriaGroup,
+  AttendanceCriteriaRule,
+  AttendanceCriteriaField,
+  AttendanceCriteriaCondition
+} from '../../types';
+import { CriteriaGroupOperator } from '../../types';
+// Constants
+import {
+  ATTENDANCE_CRITERIA_FIELD_OPTIONS,
+  ATTENDANCE_CRITERIA_CONDITION_OPTIONS
+} from '../../constants';
+
+// ---------------------------------------------------------------------------
+// PROPS & EMITS
+// ---------------------------------------------------------------------------
+
+interface Props {
+  modelValue: AttendanceCriteriaSet;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: AttendanceCriteriaSet): void;
+}>();
+
+// ---------------------------------------------------------------------------
+// OPTIONS
+// ---------------------------------------------------------------------------
+
+const criteriaFieldOptions = ATTENDANCE_CRITERIA_FIELD_OPTIONS;
+const conditionOptions = ATTENDANCE_CRITERIA_CONDITION_OPTIONS;
+
+const groupColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+
+// ---------------------------------------------------------------------------
+// COMPUTED
+// ---------------------------------------------------------------------------
+
+const totalRulesCount = computed(() => {
+  return props.modelValue.groups.reduce((sum, group) => sum + group.rules.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------------------
+
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function getGroupColor(index: number): string {
+  return groupColors[index % groupColors.length];
+}
+
+function createDefaultRule(): AttendanceCriteriaRule {
+  return {
+    id: generateId(),
+    field: criteriaFieldOptions[0].value as AttendanceCriteriaField,
+    condition: conditionOptions[0].value as AttendanceCriteriaCondition,
+    value: { hours: 0, minutes: 0 }
+  };
+}
+
+function createDefaultGroup(): AttendanceCriteriaGroup {
+  return {
+    id: generateId(),
+    operator: CriteriaGroupOperator.AND,
+    rules: [createDefaultRule()]
+  };
+}
+
+// ---------------------------------------------------------------------------
+// METHODS
+// ---------------------------------------------------------------------------
+
+function toggleGroupOperator(): void {
+  const newOp = props.modelValue.groupOperator === CriteriaGroupOperator.AND
+    ? CriteriaGroupOperator.OR
+    : CriteriaGroupOperator.AND;
+  emit('update:modelValue', { ...props.modelValue, groupOperator: newOp });
+}
+
+function toggleRuleOperator(groupIndex: number): void {
+  const newGroups = [...props.modelValue.groups];
+  const currentOp = newGroups[groupIndex].operator;
+  const newOp = currentOp === CriteriaGroupOperator.AND
+    ? CriteriaGroupOperator.OR
+    : CriteriaGroupOperator.AND;
+  newGroups[groupIndex] = { ...newGroups[groupIndex], operator: newOp };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function addCondition(): void {
+  const newGroups = [...props.modelValue.groups, createDefaultGroup()];
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function removeGroup(groupIndex: number): void {
+  const newGroups = props.modelValue.groups.filter((_, i) => i !== groupIndex);
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function addRule(groupIndex: number): void {
+  const newGroups = [...props.modelValue.groups];
+  newGroups[groupIndex] = {
+    ...newGroups[groupIndex],
+    rules: [...newGroups[groupIndex].rules, createDefaultRule()]
+  };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function removeRule(groupIndex: number, ruleIndex: number): void {
+  const newGroups = [...props.modelValue.groups];
+  const group = newGroups[groupIndex];
+
+  if (group.rules.length === 1) {
+    if (props.modelValue.groups.length > 1) {
+      newGroups.splice(groupIndex, 1);
+    }
+  } else {
+    newGroups[groupIndex] = {
+      ...group,
+      rules: group.rules.filter((_, i) => i !== ruleIndex)
+    };
+  }
+
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function updateRule(
+  groupIndex: number,
+  ruleIndex: number,
+  field: 'field' | 'condition',
+  value: AttendanceCriteriaField | AttendanceCriteriaCondition
+): void {
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  newRules[ruleIndex] = { ...newRules[ruleIndex], [field]: value };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function updateRuleValue(
+  groupIndex: number,
+  ruleIndex: number,
+  field: 'hours' | 'minutes',
+  value: number
+): void {
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  newRules[ruleIndex] = {
+    ...newRules[ruleIndex],
+    value: { ...newRules[ruleIndex].value, [field]: value }
+  };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+</script>
+
+<style scoped>
+.condition-builder {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Header */
+.builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.condition-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #ffffff;
+  padding: 0.25rem 0.625rem;
+  border-radius: 100px;
+  border: 1px solid #e2e8f0;
+}
+
+.add-btn {
+  font-weight: 500;
+}
+
+.add-btn :deep(.p-button) {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.add-btn :deep(.p-button:hover) {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+/* Conditions Container */
+.conditions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Group Operator Row */
+.group-operator-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+}
+
+.operator-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #cbd5e1 50%, transparent 100%);
+}
+
+/* Operator Switch */
+.operator-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.operator-switch .switch-option {
+  position: relative;
+  z-index: 1;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.2s ease;
+}
+
+.operator-switch .switch-option.active {
+  color: #ffffff;
+}
+
+.operator-switch .switch-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 4px;
+  transition: transform 0.2s ease, background 0.2s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+.operator-switch .switch-slider.is-or {
+  transform: translateX(100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+}
+
+.operator-switch.small {
+  padding: 1px;
+}
+
+.operator-switch.small .switch-option {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.5625rem;
+}
+
+.operator-switch.small .switch-slider {
+  top: 1px;
+  left: 1px;
+  width: calc(50% - 1px);
+  height: calc(100% - 2px);
+}
+
+/* Condition Group */
+.condition-group {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.condition-group.has-multiple {
+  border-left: 3px solid var(--group-color, #6366f1);
+}
+
+/* Group Badge */
+.group-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+.badge-number {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--group-color, #6366f1);
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-remove {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.condition-group:hover .badge-remove {
+  opacity: 1;
+}
+
+.badge-remove:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* Rules List */
+.rules-list {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Rule Operator Row */
+.rule-operator-row {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0 0.375rem 2.5rem;
+}
+
+
+/* Rule Row */
+.rule-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: #fafbfc;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.rule-row:hover {
+  background: #f5f7fa;
+}
+
+.rule-content {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.625rem;
+  flex: 1;
+}
+
+/* Field Groups */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.125rem;
+}
+
+.field-select {
+  flex: 1;
+  min-width: 140px;
+}
+
+.operator-select {
+  min-width: 180px;
+}
+
+.value-input {
+  min-width: 150px;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown :deep(.p-dropdown) {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  height: 34px;
+  transition: all 0.15s ease;
+}
+
+.custom-dropdown :deep(.p-dropdown:hover) {
+  border-color: #cbd5e1;
+}
+
+.custom-dropdown :deep(.p-dropdown:focus),
+.custom-dropdown :deep(.p-dropdown.p-focus) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.custom-dropdown :deep(.p-dropdown-label) {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.625rem;
+  color: #1e293b;
+}
+
+.operator-dropdown :deep(.p-dropdown-label) {
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Time Value Group */
+.time-value-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.25rem 0.625rem;
+  height: 34px;
+}
+
+.time-segment {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.time-number {
+  width: 50px;
+}
+
+.time-number :deep(.p-inputnumber) {
+  width: 100%;
+}
+
+.time-number :deep(.p-inputnumber-input) {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  text-align: center;
+  padding: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  height: 24px;
+  width: 100%;
+}
+
+.time-number :deep(.p-inputnumber-input:focus) {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  background: #ffffff;
+}
+
+.time-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: lowercase;
+}
+
+.time-colon {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0 0.125rem;
+}
+
+/* Rule Actions */
+.rule-actions {
+  display: flex;
+  gap: 0.25rem;
+  padding-bottom: 0.125rem;
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.add-rule-btn {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.add-rule-btn:hover {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.remove-rule-btn {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.remove-rule-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.remove-rule-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: #ffffff;
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.875rem;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon i {
+  font-size: 1.25rem;
+  color: #94a3b8;
+}
+
+.empty-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 0.25rem 0;
+}
+
+.empty-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rule-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .rule-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .field-group {
+    width: 100%;
+  }
+
+  .field-select,
+  .operator-select,
+  .value-input {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .rule-actions {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .group-badge {
+    position: static;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
+  }
+
+  .rule-operator-row {
+    padding-left: 0.5rem;
+  }
+}
+</style>
