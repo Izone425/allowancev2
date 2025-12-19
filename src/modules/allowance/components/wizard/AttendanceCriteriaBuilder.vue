@@ -75,8 +75,23 @@
                     />
                   </div>
 
-                  <!-- Operator Dropdown (hidden for WORKING_TIME) -->
-                  <div v-if="rule.field !== 'WORKING_TIME'" class="field-group operator-select">
+                  <!-- Leave Type Selection (shown before operator for LEAVE_TIMES) -->
+                  <div v-if="isLeaveField(rule.field)" class="field-group leave-type-select-group">
+                    <label class="field-label">Leave Type</label>
+                    <Dropdown
+                      :modelValue="getLeaveValue(rule.value).leaveType || null"
+                      @update:modelValue="(val) => updateLeaveValue(groupIndex, ruleIndex, 'leaveType', val ?? '')"
+                      :options="leaveTypeOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="All Leave Types"
+                      class="custom-dropdown leave-type-dropdown"
+                      showClear
+                    />
+                  </div>
+
+                  <!-- Operator Dropdown (hidden for time range fields) -->
+                  <div v-if="!isTimeRangeField(rule.field)" class="field-group operator-select">
                     <label class="field-label">Operator</label>
                     <Dropdown
                       :modelValue="rule.condition"
@@ -89,8 +104,56 @@
                     />
                   </div>
 
-                  <!-- Time Value (Regular fields) -->
-                  <div v-if="rule.field !== 'WORKING_TIME'" class="field-group value-input">
+                  <!-- Simple Count Value (LATE_IN_TIMES, ABSENT_TIMES, etc.) -->
+                  <div v-if="isCountField(rule.field)" class="field-group value-input-simple">
+                    <label class="field-label">Value</label>
+                    <div class="simple-value-group">
+                      <InputNumber
+                        :modelValue="getSimpleTimeValue(rule.value).hours"
+                        @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'hours', val ?? 0)"
+                        :min="0"
+                        :max="999"
+                        class="simple-number"
+                        :inputClass="'simple-input-field'"
+                      />
+                      <span class="value-unit">times</span>
+                    </div>
+                  </div>
+
+                  <!-- Leave Value (count only, leave types moved above) -->
+                  <div v-else-if="isLeaveField(rule.field)" class="field-group value-input-simple">
+                    <label class="field-label">Value</label>
+                    <div class="simple-value-group">
+                      <InputNumber
+                        :modelValue="getLeaveValue(rule.value).count"
+                        @update:modelValue="(val) => updateLeaveValue(groupIndex, ruleIndex, 'count', val ?? 0)"
+                        :min="0"
+                        :max="999"
+                        class="simple-number"
+                        :inputClass="'simple-input-field'"
+                      />
+                      <span class="value-unit">times</span>
+                    </div>
+                  </div>
+
+                  <!-- Simple Minutes Value (LATE_IN_MINUTES) -->
+                  <div v-else-if="isMinutesOnlyField(rule.field)" class="field-group value-input-simple">
+                    <label class="field-label">Value</label>
+                    <div class="simple-value-group">
+                      <InputNumber
+                        :modelValue="getSimpleTimeValue(rule.value).minutes"
+                        @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'minutes', val ?? 0)"
+                        :min="0"
+                        :max="9999"
+                        class="simple-number"
+                        :inputClass="'simple-input-field'"
+                      />
+                      <span class="value-unit">minutes</span>
+                    </div>
+                  </div>
+
+                  <!-- Time Duration Value (hours:minutes for regular fields) -->
+                  <div v-else-if="!isTimeRangeField(rule.field)" class="field-group value-input">
                     <label class="field-label">Value</label>
                     <div class="time-value-group">
                       <div class="time-segment">
@@ -119,9 +182,9 @@
                     </div>
                   </div>
 
-                  <!-- Time Range Value (WORKING_TIME field) -->
+                  <!-- Time Range Value (WORKING_TIME and OVERTIME_TIME fields) -->
                   <div v-else class="field-group value-input-wide">
-                    <label class="field-label">Time Start & End</label>
+                    <label class="field-label">{{ getTimeRangeLabel(rule.field) }}</label>
                     <div class="time-range-group">
                       <!-- Start Time -->
                       <div class="time-range-segment">
@@ -208,13 +271,15 @@ import type {
   AttendanceCriteriaField,
   AttendanceCriteriaCondition,
   AttendanceTimeValue,
-  AttendanceTimeRangeValue
+  AttendanceTimeRangeValue,
+  AttendanceLeaveValue
 } from '../../types';
 import { CriteriaGroupOperator, AttendanceCriteriaField as AttendanceFieldEnum } from '../../types';
 // Constants
 import {
   ATTENDANCE_CRITERIA_FIELD_OPTIONS,
-  ATTENDANCE_CRITERIA_CONDITION_OPTIONS
+  ATTENDANCE_CRITERIA_CONDITION_OPTIONS,
+  LEAVE_TYPE_OPTIONS
 } from '../../constants';
 
 // ---------------------------------------------------------------------------
@@ -237,6 +302,7 @@ const emit = defineEmits<{
 
 const criteriaFieldOptions = ATTENDANCE_CRITERIA_FIELD_OPTIONS;
 const conditionOptions = ATTENDANCE_CRITERIA_CONDITION_OPTIONS;
+const leaveTypeOptions = LEAVE_TYPE_OPTIONS;
 
 const groupColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -261,20 +327,73 @@ function getGroupColor(index: number): string {
 }
 
 // Type guards for time values
-function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): value is AttendanceTimeRangeValue {
+function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceTimeRangeValue {
   return 'startTime' in value && 'endTime' in value;
 }
 
+// Type guard for leave values
+function isLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceLeaveValue {
+  return 'count' in value && 'leaveType' in value;
+}
+
+// Check if field uses time range input (start & end)
+function isTimeRangeField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.WORKING_TIME || field === AttendanceFieldEnum.OVERTIME_TIME;
+}
+
+// Check if field is a simple count field (just a number)
+function isCountField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.LATE_IN_TIMES ||
+         field === AttendanceFieldEnum.EARLY_OUT_TIMES ||
+         field === AttendanceFieldEnum.EXTENDED_BREAK_TIMES ||
+         field === AttendanceFieldEnum.SHORT_HOURS_TIMES ||
+         field === AttendanceFieldEnum.ABSENT_TIMES;
+}
+
+// Check if field is a leave field (has leave type selection)
+function isLeaveField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.LEAVE_TIMES;
+}
+
+// Check if field is a minutes-only field
+function isMinutesOnlyField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.LATE_IN_MINUTES ||
+         field === AttendanceFieldEnum.EARLY_OUT_MINUTES ||
+         field === AttendanceFieldEnum.EXTENDED_BREAK_MINUTES ||
+         field === AttendanceFieldEnum.SHORT_HOURS_MINUTES;
+}
+
+// Get label for time range fields
+function getTimeRangeLabel(field: AttendanceCriteriaField): string {
+  if (field === AttendanceFieldEnum.OVERTIME_TIME) {
+    return 'Overtime Start & End';
+  }
+  return 'Time Start & End';
+}
+
 // Get simple time value (for regular fields)
-function getSimpleTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): AttendanceTimeValue {
-  if (isTimeRangeValue(value)) {
+function getSimpleTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): AttendanceTimeValue {
+  if (isTimeRangeValue(value) || isLeaveValue(value)) {
     return { hours: 0, minutes: 0 };
   }
   return value;
 }
 
+// Get leave value (for LEAVE_TIMES field)
+function getLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): AttendanceLeaveValue {
+  if (isLeaveValue(value)) {
+    return value;
+  }
+  return { count: 0, leaveType: '' };
+}
+
+// Create default leave value
+function createDefaultLeaveValue(): AttendanceLeaveValue {
+  return { count: 0, leaveType: '' };
+}
+
 // Get time range value (for WORKING_TIME field)
-function getTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue): AttendanceTimeRangeValue {
+function getTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): AttendanceTimeRangeValue {
   if (isTimeRangeValue(value)) {
     return value;
   }
@@ -340,7 +459,7 @@ function handleTimeInput(
   }
 }
 
-// Handle time blur - validate and update
+// Handle time blur - validate and update (for time range fields)
 function handleTimeBlur(
   event: Event,
   groupIndex: number,
@@ -457,17 +576,25 @@ function updateRule(
   // When changing field, also update the value type accordingly
   if (field === 'field') {
     const newField = value as AttendanceCriteriaField;
-    const isWorkingTime = newField === AttendanceFieldEnum.WORKING_TIME;
-    const wasWorkingTime = currentRule.field === AttendanceFieldEnum.WORKING_TIME;
+    const isNewTimeRange = isTimeRangeField(newField);
+    const wasTimeRange = isTimeRangeField(currentRule.field);
+    const isNewLeave = isLeaveField(newField);
+    const wasLeave = isLeaveField(currentRule.field);
 
-    // Reset value when switching between WORKING_TIME and other fields
-    if (isWorkingTime && !wasWorkingTime) {
+    // Reset value when switching between different field types
+    if (isNewTimeRange && !wasTimeRange) {
       newRules[ruleIndex] = {
         ...currentRule,
         field: newField,
         value: createDefaultTimeRangeValue()
       };
-    } else if (!isWorkingTime && wasWorkingTime) {
+    } else if (isNewLeave && !wasLeave) {
+      newRules[ruleIndex] = {
+        ...currentRule,
+        field: newField,
+        value: createDefaultLeaveValue()
+      };
+    } else if (!isNewTimeRange && !isNewLeave && (wasTimeRange || wasLeave)) {
       newRules[ruleIndex] = {
         ...currentRule,
         field: newField,
@@ -519,6 +646,26 @@ function updateTimeRangeValue(
         ...currentValue[timeType],
         [field]: value
       }
+    }
+  };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function updateLeaveValue(
+  groupIndex: number,
+  ruleIndex: number,
+  field: 'count' | 'leaveType',
+  value: number | string
+): void {
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  const currentValue = getLeaveValue(newRules[ruleIndex].value);
+  newRules[ruleIndex] = {
+    ...newRules[ruleIndex],
+    value: {
+      ...currentValue,
+      [field]: value
     }
   };
   newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
@@ -1002,6 +1149,75 @@ function updateTimeRangeValue(
   cursor: not-allowed;
 }
 
+/* Simple Value Input (for count and minutes-only fields) */
+.value-input-simple {
+  min-width: 140px;
+}
+
+.simple-value-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.25rem 0.625rem;
+  height: 34px;
+}
+
+.simple-number {
+  width: 70px;
+}
+
+.simple-number :deep(.p-inputnumber) {
+  width: 100%;
+}
+
+.simple-number :deep(.p-inputnumber-input) {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  text-align: center;
+  padding: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  height: 26px;
+  width: 100%;
+}
+
+.simple-number :deep(.p-inputnumber-input:focus) {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  background: #ffffff;
+}
+
+.value-unit {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Leave Type Selection Group */
+.leave-type-select-group {
+  min-width: 180px;
+  flex: 1;
+  max-width: 220px;
+}
+
+.leave-type-dropdown :deep(.p-dropdown) {
+  min-width: 180px;
+}
+
+.leave-type-dropdown :deep(.p-dropdown-clear-icon) {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: 0;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -1060,9 +1276,12 @@ function updateTimeRangeValue(
   .field-select,
   .operator-select,
   .value-input,
-  .value-input-wide {
+  .value-input-wide,
+  .value-input-simple,
+  .leave-type-select-group {
     min-width: 100%;
     width: 100%;
+    max-width: 100%;
   }
 
   .time-range-group {

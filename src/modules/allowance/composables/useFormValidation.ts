@@ -53,6 +53,7 @@ function createDefaultFormData(): TemplateInfoFormData {
     filterByWorkLocation: false,
     applyOnWorkLocations: [],
     hourlyRateConfig: createDefaultHourlyRateConfig(),
+    payrollAdditionalItem: '',
     // Monthly specific
     prorateByJoinDate: true,
     prorateByLeaveDate: false,

@@ -123,6 +123,25 @@ export const DAILY_CALCULATION_MODE_OPTIONS = [
 ] as const;
 
 // -----------------------------------------------------------------------------
+// PAYROLL ADDITIONAL ITEM OPTIONS (for Daily Allowance)
+// -----------------------------------------------------------------------------
+
+export const PAYROLL_ADDITIONAL_ITEM_OPTIONS = [
+  { value: 'ATTENDANCE_ALLOWANCE', label: 'Attendance Allowance' },
+  { value: 'TRANSPORT_ALLOWANCE', label: 'Transport Allowance' },
+  { value: 'MEAL_ALLOWANCE', label: 'Meal Allowance' },
+  { value: 'SHIFT_ALLOWANCE', label: 'Shift Allowance' },
+  { value: 'SITE_ALLOWANCE', label: 'Site Allowance' },
+  { value: 'OUTSTATION_ALLOWANCE', label: 'Outstation Allowance' },
+  { value: 'HAZARD_ALLOWANCE', label: 'Hazard Allowance' },
+  { value: 'HOUSING_ALLOWANCE', label: 'Housing Allowance' },
+  { value: 'PHONE_ALLOWANCE', label: 'Phone Allowance' },
+  { value: 'PETROL_ALLOWANCE', label: 'Petrol Allowance' },
+  { value: 'PARKING_ALLOWANCE', label: 'Parking Allowance' },
+  { value: 'OTHER_ALLOWANCE', label: 'Other Allowance' }
+] as const;
+
+// -----------------------------------------------------------------------------
 // CRITERIA FIELD DEFINITIONS
 // -----------------------------------------------------------------------------
 
@@ -234,36 +253,64 @@ export const GROUP_OPERATOR_LABELS: Record<CriteriaGroupOperator, string> = {
 
 export const ATTENDANCE_CRITERIA_FIELD_OPTIONS = [
   {
-    value: AttendanceCriteriaField.WORKING_HOUR,
-    label: 'Working Hour'
+    value: AttendanceCriteriaField.TOTAL_WORKING_HOURS,
+    label: 'Total Working Hours'
   },
   {
-    value: AttendanceCriteriaField.OVERTIME,
-    label: 'Overtime'
+    value: AttendanceCriteriaField.TOTAL_ACTUAL_OVERTIME,
+    label: 'Total Actual Overtime'
   },
   {
-    value: AttendanceCriteriaField.LATE_IN,
-    label: 'Late In'
+    value: AttendanceCriteriaField.TOTAL_APPROVED_OVERTIME,
+    label: 'Total Approved Overtime'
   },
   {
-    value: AttendanceCriteriaField.EARLY_OUT,
-    label: 'Early Out'
+    value: AttendanceCriteriaField.LATE_IN_TIMES,
+    label: 'Late In (Times)'
   },
   {
-    value: AttendanceCriteriaField.BREAK_DURATION,
-    label: 'Break Duration'
+    value: AttendanceCriteriaField.LATE_IN_MINUTES,
+    label: 'Late In (Minutes)'
   },
   {
-    value: AttendanceCriteriaField.TIME_IN,
-    label: 'Time In'
+    value: AttendanceCriteriaField.EARLY_OUT_TIMES,
+    label: 'Early Out (Times)'
   },
   {
-    value: AttendanceCriteriaField.TIME_OUT,
-    label: 'Time Out'
+    value: AttendanceCriteriaField.EARLY_OUT_MINUTES,
+    label: 'Early Out (Minutes)'
+  },
+  {
+    value: AttendanceCriteriaField.EXTENDED_BREAK_TIMES,
+    label: 'Extended Break (Times)'
+  },
+  {
+    value: AttendanceCriteriaField.EXTENDED_BREAK_MINUTES,
+    label: 'Extended Break (Minutes)'
+  },
+  {
+    value: AttendanceCriteriaField.SHORT_HOURS_TIMES,
+    label: 'Short Hours (Times)'
+  },
+  {
+    value: AttendanceCriteriaField.SHORT_HOURS_MINUTES,
+    label: 'Short Hours (Minutes)'
+  },
+  {
+    value: AttendanceCriteriaField.ABSENT_TIMES,
+    label: 'Absent (Times)'
+  },
+  {
+    value: AttendanceCriteriaField.LEAVE_TIMES,
+    label: 'Leave (Times)'
   },
   {
     value: AttendanceCriteriaField.WORKING_TIME,
     label: 'Working Starts & Working Ends'
+  },
+  {
+    value: AttendanceCriteriaField.OVERTIME_TIME,
+    label: 'Overtime Starts & Overtime Ends'
   }
 ] as const;
 
@@ -299,6 +346,25 @@ export const ATTENDANCE_CONDITION_LABELS: Record<AttendanceCriteriaCondition, st
   [AttendanceCriteriaCondition.NOT_EQUALS]: '!=',
   [AttendanceCriteriaCondition.BETWEEN]: 'Between'
 };
+
+// -----------------------------------------------------------------------------
+// LEAVE TYPE OPTIONS (for Leave criteria)
+// -----------------------------------------------------------------------------
+
+export const LEAVE_TYPE_OPTIONS = [
+  { value: 'ANNUAL', label: 'Annual Leave' },
+  { value: 'SICK', label: 'Sick Leave' },
+  { value: 'MEDICAL', label: 'Medical Leave' },
+  { value: 'MATERNITY', label: 'Maternity Leave' },
+  { value: 'PATERNITY', label: 'Paternity Leave' },
+  { value: 'EMERGENCY', label: 'Emergency Leave' },
+  { value: 'UNPAID', label: 'Unpaid Leave' },
+  { value: 'COMPASSIONATE', label: 'Compassionate Leave' },
+  { value: 'MARRIAGE', label: 'Marriage Leave' },
+  { value: 'STUDY', label: 'Study Leave' },
+  { value: 'REPLACEMENT', label: 'Replacement Leave' },
+  { value: 'HOSPITALIZATION', label: 'Hospitalization Leave' }
+] as const;
 
 // -----------------------------------------------------------------------------
 // CURRENCY OPTIONS

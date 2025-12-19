@@ -68,6 +68,25 @@
           </div>
         </div>
 
+        <!-- Payroll Additional Item (for Daily type - both Fixed Daily and Hourly Rate) -->
+        <div v-if="formData.type === 'DAILY'" class="form-row">
+          <div class="form-field">
+            <label for="payrollAdditionalItem" class="field-label required">Payroll Additional Item</label>
+            <Dropdown
+              id="payrollAdditionalItem"
+              :modelValue="formData.payrollAdditionalItem"
+              @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+              :options="payrollAdditionalItemOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select payroll item"
+              :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+              class="w-full"
+            />
+            <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+          </div>
+        </div>
+
         <!-- Fixed Daily Amount (when FIXED_DAILY mode) -->
         <div v-if="formData.type === 'DAILY' && formData.dailyCalculationMode === DailyCalculationMode.FIXED_DAILY" class="form-row">
           <div class="form-field">
@@ -427,7 +446,8 @@ import {
   AMOUNT_MODE_OPTIONS,
   SHIFT_OPTIONS,
   WORK_LOCATION_OPTIONS,
-  DAILY_CALCULATION_MODE_OPTIONS
+  DAILY_CALCULATION_MODE_OPTIONS,
+  PAYROLL_ADDITIONAL_ITEM_OPTIONS
 } from '../../constants';
 // Types
 import type { TemplateInfoFormData, AllowanceType } from '../../types';
@@ -458,6 +478,7 @@ const amountModeOptions = AMOUNT_MODE_OPTIONS;
 const shiftOptions = SHIFT_OPTIONS;
 const workLocationOptions = WORK_LOCATION_OPTIONS;
 const dailyCalculationModeOptions = DAILY_CALCULATION_MODE_OPTIONS;
+const payrollAdditionalItemOptions = PAYROLL_ADDITIONAL_ITEM_OPTIONS;
 
 // ---------------------------------------------------------------------------
 // METHODS

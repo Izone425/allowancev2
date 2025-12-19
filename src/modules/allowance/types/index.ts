@@ -71,14 +71,21 @@ export enum CriteriaGroupOperator {
 // -----------------------------------------------------------------------------
 
 export enum AttendanceCriteriaField {
-  WORKING_HOUR = 'WORKING_HOUR',
-  OVERTIME = 'OVERTIME',
-  LATE_IN = 'LATE_IN',
-  EARLY_OUT = 'EARLY_OUT',
-  BREAK_DURATION = 'BREAK_DURATION',
-  TIME_IN = 'TIME_IN',
-  TIME_OUT = 'TIME_OUT',
-  WORKING_TIME = 'WORKING_TIME'  // Combined start & end time range
+  TOTAL_WORKING_HOURS = 'TOTAL_WORKING_HOURS',
+  TOTAL_ACTUAL_OVERTIME = 'TOTAL_ACTUAL_OVERTIME',
+  TOTAL_APPROVED_OVERTIME = 'TOTAL_APPROVED_OVERTIME',
+  LATE_IN_TIMES = 'LATE_IN_TIMES',               // Number of times late
+  LATE_IN_MINUTES = 'LATE_IN_MINUTES',           // Total late minutes
+  EARLY_OUT_TIMES = 'EARLY_OUT_TIMES',           // Number of times early out
+  EARLY_OUT_MINUTES = 'EARLY_OUT_MINUTES',       // Total early out minutes
+  EXTENDED_BREAK_TIMES = 'EXTENDED_BREAK_TIMES',     // Number of extended breaks
+  EXTENDED_BREAK_MINUTES = 'EXTENDED_BREAK_MINUTES', // Total extended break minutes
+  SHORT_HOURS_TIMES = 'SHORT_HOURS_TIMES',           // Number of short hour days
+  SHORT_HOURS_MINUTES = 'SHORT_HOURS_MINUTES',       // Total short hours minutes
+  ABSENT_TIMES = 'ABSENT_TIMES',                     // Number of absent days
+  LEAVE_TIMES = 'LEAVE_TIMES',                       // Number of leave days
+  WORKING_TIME = 'WORKING_TIME',        // Combined start & end time range
+  OVERTIME_TIME = 'OVERTIME_TIME'       // Overtime start & end time range
 }
 
 export enum AttendanceCriteriaCondition {
@@ -209,11 +216,17 @@ export interface AttendanceTimeRangeValue {
   endTime: AttendanceTimeValue;
 }
 
+// Leave criteria value with leave type selection
+export interface AttendanceLeaveValue {
+  count: number;           // Number of times (leave days)
+  leaveType: string;       // Selected leave type ID (empty string = all leave types)
+}
+
 export interface AttendanceCriteriaRule {
   id: string;
   field: AttendanceCriteriaField;
   condition: AttendanceCriteriaCondition;
-  value: AttendanceTimeValue | AttendanceTimeRangeValue;  // TimeRange for WORKING_TIME field
+  value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue;  // TimeRange for WORKING_TIME field, LeaveValue for LEAVE_TIMES
 }
 
 export interface AttendanceCriteriaGroup {
@@ -406,6 +419,8 @@ export interface TemplateInfoFormData {
   applyOnWorkLocations: string[];
   // Hourly rate config (when dailyCalculationMode = HOURLY_RATE)
   hourlyRateConfig: HourlyRateConfig;
+  // Payroll Additional Item (for Daily type)
+  payrollAdditionalItem: string;
   // Monthly specific
   prorateByJoinDate: boolean;
   prorateByLeaveDate: boolean;
