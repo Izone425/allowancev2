@@ -177,13 +177,12 @@ import { WIZARD_STEPS } from '../constants';
 // Types
 import type {
   AllowanceTemplate,
-  AllowanceStatus,
   CriteriaSet,
   TemplateInfoFormData,
   CreateAllowanceTemplateRequest,
   AttendanceCriteriaSet
 } from '../types';
-import { CriteriaGroupOperator } from '../types';
+import { CriteriaGroupOperator, AllowanceStatus, DailyCalculationMode } from '../types';
 
 // ---------------------------------------------------------------------------
 // PROPS & EMITS
@@ -217,7 +216,7 @@ const showUnsavedDialog = ref(false);
 
 // Criteria state (kept for assignment panel compatibility)
 const criteriaData = ref<CriteriaSet>({
-  groupOperator: 'AND',
+  groupOperator: CriteriaGroupOperator.AND,
   groups: []
 });
 
@@ -334,7 +333,7 @@ function closeDrawer(): void {
 function resetAndClose(): void {
   resetForm();
   currentStep.value = 0;
-  criteriaData.value = { groupOperator: 'AND', groups: [] };
+  criteriaData.value = { groupOperator: CriteriaGroupOperator.AND, groups: [] };
   selectedUserIds.value = [];
   assignmentMode.value = 'MANUAL';
   closeDrawer();
@@ -375,7 +374,7 @@ async function handleSave(): Promise<void> {
 
   saving.value = true;
   try {
-    const template = await saveTemplate('ACTIVE');
+    const template = await saveTemplate(AllowanceStatus.ACTIVE);
 
     if (selectedUserIds.value.length > 0 && template.id) {
       await allowanceTemplateService.assignUsers(template.id, {
@@ -418,12 +417,28 @@ async function saveTemplate(status: AllowanceStatus): Promise<AllowanceTemplate>
     currency: formData.value.currency,
     taxable: formData.value.taxable,
     prorate: formData.value.prorate,
+    // Daily specific fields
+    dailyCalculationMode: formData.value.dailyCalculationMode,
     ratePerDay: formData.value.ratePerDay || undefined,
     includeNonWorkingDays: formData.value.includeNonWorkingDays,
+    applyOnNormalWorkday: formData.value.applyOnNormalWorkday,
+    applyOnRestday: formData.value.applyOnRestday,
+    applyOnOffday: formData.value.applyOnOffday,
+    applyOnHoliday: formData.value.applyOnHoliday,
+    filterByShift: formData.value.filterByShift,
+    applyOnShifts: formData.value.applyOnShifts.length > 0 ? formData.value.applyOnShifts : undefined,
+    filterByWorkLocation: formData.value.filterByWorkLocation,
+    applyOnWorkLocations: formData.value.applyOnWorkLocations.length > 0 ? formData.value.applyOnWorkLocations : undefined,
+    hourlyRateConfig: formData.value.hourlyRateConfig,
+    payrollAdditionalItem: formData.value.payrollAdditionalItem || undefined,
+    attendanceCriteria: formData.value.attendanceCriteria.groups.length > 0 ? formData.value.attendanceCriteria : undefined,
+    // Monthly specific
     prorateByJoinDate: formData.value.prorateByJoinDate,
     prorateByLeaveDate: formData.value.prorateByLeaveDate,
+    // One-off specific
     payoutDate: formData.value.payoutDate?.toISOString().split('T')[0] || undefined,
     payoutMonth: formData.value.payoutMonth || undefined,
+    // Common
     effectiveStart: formData.value.effectiveStart?.toISOString().split('T')[0] || '',
     effectiveEnd: formData.value.effectiveEnd?.toISOString().split('T')[0] || undefined,
     status,
@@ -453,9 +468,15 @@ async function loadTemplate(): Promise<void> {
 
     // Default attendance criteria
     const defaultAttendanceCriteria: AttendanceCriteriaSet = {
-      enabled: false,
       groupOperator: CriteriaGroupOperator.AND,
       groups: []
+    };
+
+    // Default hourly rate config
+    const defaultHourlyRateConfig = {
+      ratePerHour: 0,
+      dailyCap: null,
+      minWorkingHours: null
     };
 
     setFormData({
@@ -470,6 +491,8 @@ async function loadTemplate(): Promise<void> {
       currency: template.currency,
       taxable: template.taxable,
       prorate: template.prorate,
+      // Daily specific
+      dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
       ratePerDay: template.ratePerDay || null,
       includeNonWorkingDays: template.includeNonWorkingDays || false,
       applyOnNormalWorkday: template.applyOnNormalWorkday ?? true,
@@ -480,10 +503,15 @@ async function loadTemplate(): Promise<void> {
       applyOnShifts: template.applyOnShifts || [],
       filterByWorkLocation: template.filterByWorkLocation || false,
       applyOnWorkLocations: template.applyOnWorkLocations || [],
+      hourlyRateConfig: template.hourlyRateConfig || defaultHourlyRateConfig,
+      payrollAdditionalItem: template.payrollAdditionalItem || '',
+      // Monthly specific
       prorateByJoinDate: template.prorateByJoinDate || false,
       prorateByLeaveDate: template.prorateByLeaveDate || false,
+      // One-off specific
       payoutDate: template.payoutDate ? new Date(template.payoutDate) : null,
       payoutMonth: template.payoutMonth || '',
+      // Common
       effectiveStart: template.effectiveStart ? new Date(template.effectiveStart) : null,
       effectiveEnd: template.effectiveEnd ? new Date(template.effectiveEnd) : null,
       status: template.status,
@@ -514,7 +542,7 @@ watch(() => props.visible, async (newVisible) => {
   if (newVisible) {
     // Reset state when opening
     currentStep.value = 0;
-    criteriaData.value = { groupOperator: 'AND', groups: [] };
+    criteriaData.value = { groupOperator: CriteriaGroupOperator.AND, groups: [] };
     selectedUserIds.value = [];
     assignmentMode.value = 'MANUAL';
 

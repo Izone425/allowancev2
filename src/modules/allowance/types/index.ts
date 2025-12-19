@@ -131,6 +131,8 @@ export interface AllowanceTemplate {
   applyOnWorkLocations?: string[];
   // Hourly rate configuration (when dailyCalculationMode = HOURLY_RATE)
   hourlyRateConfig?: HourlyRateConfig;
+  // Payroll Additional Item (for Daily type)
+  payrollAdditionalItem?: string;
 
   // MONTHLY
   prorateByJoinDate?: boolean;
@@ -336,12 +338,28 @@ export interface CreateAllowanceTemplateRequest {
   currency?: string;
   taxable: boolean;
   prorate?: boolean;
+  // Daily specific
+  dailyCalculationMode?: DailyCalculationMode;
   ratePerDay?: number;
   includeNonWorkingDays?: boolean;
+  applyOnNormalWorkday?: boolean;
+  applyOnRestday?: boolean;
+  applyOnOffday?: boolean;
+  applyOnHoliday?: boolean;
+  filterByShift?: boolean;
+  applyOnShifts?: string[];
+  filterByWorkLocation?: boolean;
+  applyOnWorkLocations?: string[];
+  hourlyRateConfig?: HourlyRateConfig;
+  payrollAdditionalItem?: string;
+  attendanceCriteria?: AttendanceCriteriaSet;
+  // Monthly specific
   prorateByJoinDate?: boolean;
   prorateByLeaveDate?: boolean;
+  // One-off specific
   payoutDate?: string;
   payoutMonth?: string;
+  // Common
   effectiveStart: string;
   effectiveEnd?: string;
   status?: AllowanceStatus;
