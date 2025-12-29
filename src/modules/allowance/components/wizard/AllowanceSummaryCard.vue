@@ -8,26 +8,39 @@
       <!-- Main description sentence -->
       <p class="summary-main" v-html="mainDescription"></p>
 
-      <!-- Day types (Daily only) -->
-      <p v-if="dayTypesSentence" class="summary-line">
-        <strong>Applies on:</strong> {{ dayTypesSentence }}
-      </p>
-
-      <!-- Warning if no day types selected (Daily only) -->
-      <p v-if="showNoDayTypesWarning" class="summary-line summary-warning">
-        <i class="pi pi-exclamation-triangle"></i>
-        <span>Warning: No day types selected - allowance won't apply to any days</span>
-      </p>
-
-      <!-- Shifts (Daily only, if filtered) -->
-      <p v-if="shiftsSentence" class="summary-line">
-        <strong>Shifts:</strong> {{ shiftsSentence }}
-      </p>
-
-      <!-- Work Locations (Daily only, if filtered) -->
-      <p v-if="locationsSentence" class="summary-line">
-        <strong>Work Locations:</strong> {{ locationsSentence }}
-      </p>
+      <!-- Applies on section (Daily only) - combines day types, shifts, locations -->
+      <div v-if="formData.type === 'DAILY'" class="summary-applies-on">
+        <strong>Applies on:</strong>
+        <ul class="applies-on-list">
+          <!-- Day types -->
+          <li v-if="dayTypesSentence">
+            <i class="pi pi-calendar"></i>
+            <span>{{ dayTypesSentence }}</span>
+          </li>
+          <li v-else class="warning-item">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>No day types selected - allowance won't apply to any days</span>
+          </li>
+          <!-- Shifts -->
+          <li v-if="shiftsInfo.show && !shiftsInfo.hasWarning">
+            <i class="pi pi-clock"></i>
+            <span>{{ shiftsInfo.isFiltered ? 'Only for shifts: ' : '' }}{{ shiftsInfo.text }}</span>
+          </li>
+          <li v-else-if="shiftsInfo.hasWarning" class="warning-item">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>No shifts selected</span>
+          </li>
+          <!-- Work Locations -->
+          <li v-if="locationsInfo.show && !locationsInfo.hasWarning">
+            <i class="pi pi-map-marker"></i>
+            <span>{{ locationsInfo.isFiltered ? 'Only at locations: ' : '' }}{{ locationsInfo.text }}</span>
+          </li>
+          <li v-else-if="locationsInfo.hasWarning" class="warning-item">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>No work locations selected</span>
+          </li>
+        </ul>
+      </div>
 
       <!-- Conditions (Daily only) -->
       <div v-if="hasConditions" class="summary-conditions">
@@ -128,17 +141,39 @@ function formatTime(time: AttendanceTimeValue): string {
   return `${hours}h ${minutes}m`;
 }
 
-function getFieldLabel(field: AttendanceCriteriaField): string {
-  return ATTENDANCE_CRITERIA_FIELD_OPTIONS.find(f => f.value === field)?.label || field;
+// Layman-friendly field descriptions
+function getLaymanFieldDescription(field: AttendanceCriteriaField): { subject: string; verb: string } {
+  const fieldMap: Record<string, { subject: string; verb: string }> = {
+    'TOTAL_WORKING_HOURS': { subject: 'Employee', verb: 'works for' },
+    'TOTAL_ACTUAL_OVERTIME': { subject: 'Employee', verb: 'does overtime of' },
+    'TOTAL_APPROVED_OVERTIME': { subject: 'Employee', verb: 'has approved overtime of' },
+    'LATE_IN_TIMES': { subject: 'Employee', verb: 'comes late' },
+    'LATE_IN_MINUTES': { subject: 'Employee', verb: 'is late by' },
+    'EARLY_OUT_TIMES': { subject: 'Employee', verb: 'leaves early' },
+    'EARLY_OUT_MINUTES': { subject: 'Employee', verb: 'leaves early by' },
+    'ABSENT_TIMES': { subject: 'Employee', verb: 'is absent' },
+    'LEAVE_TIMES': { subject: 'Employee', verb: 'takes leave' },
+    'WORKING_TIME': { subject: 'Employee', verb: 'works during' },
+    'OVERTIME_TIME': { subject: 'Employee', verb: 'does overtime during' },
+  };
+  return fieldMap[field] || { subject: 'Employee', verb: 'has' };
 }
 
-function getConditionLabel(condition: string): string {
-  const opt = ATTENDANCE_CRITERIA_CONDITION_OPTIONS.find(c => c.value === condition);
-  return opt?.label?.toLowerCase() || condition;
+// Layman-friendly condition phrases
+function getLaymanCondition(condition: string): string {
+  const conditionMap: Record<string, string> = {
+    'MORE_THAN': 'more than',
+    'EQUAL_OR_MORE': 'at least',
+    'LESS_THAN': 'less than',
+    'EQUAL_OR_LESS': 'at most',
+    'EQUAL': 'exactly',
+    'BETWEEN': 'between',
+  };
+  return conditionMap[condition] || condition.toLowerCase().replace(/_/g, ' ');
 }
 
 function getLeaveTypeLabel(leaveType: string): string {
-  if (!leaveType) return 'All Leave Types';
+  if (!leaveType) return 'any type of leave';
   return LEAVE_TYPE_OPTIONS.find(l => l.value === leaveType)?.label || leaveType;
 }
 
@@ -163,12 +198,18 @@ const isReadyToShow = computed(() => {
   // Must have name and type
   if (!props.formData.name?.trim() || !props.formData.type) return false;
 
-  // For Daily with Hourly Rate, check hourlyRateConfig
-  if (props.formData.type === 'DAILY' && props.formData.dailyCalculationMode === DailyCalculationMode.HOURLY_RATE) {
-    return (props.formData.hourlyRateConfig?.ratePerHour || 0) > 0;
+  // For Daily type
+  if (props.formData.type === 'DAILY') {
+    // For Hourly Rate mode, check hourlyRateConfig
+    if (props.formData.dailyCalculationMode === DailyCalculationMode.HOURLY_RATE) {
+      return (props.formData.hourlyRateConfig?.ratePerHour || 0) > 0;
+    }
+    // For Fixed Daily mode, check amount
+    return (props.formData.amount || 0) > 0;
   }
 
-  // For Fixed modes, check amount
+  // For Monthly/One-off types
+  // For Fixed amount mode, check amount
   if (props.formData.amountMode === 'FIXED') {
     return (props.formData.amount || 0) > 0;
   }
@@ -264,39 +305,51 @@ const dayTypesSentence = computed(() => {
   return dayTypes.join(', ');
 });
 
-const showNoDayTypesWarning = computed(() => {
-  if (props.formData.type !== 'DAILY') return false;
-  return !props.formData.applyOnNormalWorkday &&
-         !props.formData.applyOnRestday &&
-         !props.formData.applyOnOffday &&
-         !props.formData.applyOnHoliday;
-});
-
 // ---------------------------------------------------------------------------
 // COMPUTED - Shifts & Locations (Daily only)
 // ---------------------------------------------------------------------------
 
-const shiftsSentence = computed(() => {
-  if (props.formData.type !== 'DAILY' || !props.formData.filterByShift) return '';
-  if (!props.formData.applyOnShifts?.length) return '';
+const shiftsInfo = computed(() => {
+  if (props.formData.type !== 'DAILY') return { show: false, text: '', isFiltered: false, hasWarning: false };
 
+  // Check if shifts are selected (filtering is based on array having items)
+  const hasSelectedShifts = props.formData.applyOnShifts && props.formData.applyOnShifts.length > 0;
+
+  if (!hasSelectedShifts) {
+    // No shifts selected = applies to all shifts
+    return { show: true, text: 'All shifts', isFiltered: false, hasWarning: false };
+  }
+
+  // Shifts are selected - show the filtered list
   const shiftLabels = props.formData.applyOnShifts
     .map(s => SHIFT_OPTIONS.find(opt => opt.value === s)?.label || s)
     .join(', ');
 
-  return shiftLabels;
+  return { show: true, text: shiftLabels, isFiltered: true, hasWarning: false };
 });
 
-const locationsSentence = computed(() => {
-  if (props.formData.type !== 'DAILY' || !props.formData.filterByWorkLocation) return '';
-  if (!props.formData.applyOnWorkLocations?.length) return '';
+const locationsInfo = computed(() => {
+  if (props.formData.type !== 'DAILY') return { show: false, text: '', isFiltered: false, hasWarning: false };
 
+  // Check if locations are selected (filtering is based on array having items)
+  const hasSelectedLocations = props.formData.applyOnWorkLocations && props.formData.applyOnWorkLocations.length > 0;
+
+  if (!hasSelectedLocations) {
+    // No locations selected = applies to all locations
+    return { show: true, text: 'All work locations', isFiltered: false, hasWarning: false };
+  }
+
+  // Locations are selected - show the filtered list
   const locationLabels = props.formData.applyOnWorkLocations
     .map(l => WORK_LOCATION_OPTIONS.find(opt => opt.value === l)?.label || l)
     .join(', ');
 
-  return locationLabels;
+  return { show: true, text: locationLabels, isFiltered: true, hasWarning: false };
 });
+
+// Keep these for backward compatibility (used in template)
+const shiftsSentence = computed(() => shiftsInfo.value.text);
+const locationsSentence = computed(() => locationsInfo.value.text);
 
 // ---------------------------------------------------------------------------
 // COMPUTED - Conditions (Daily only)
@@ -338,45 +391,68 @@ const conditionsList = computed(() => {
 });
 
 function formatRuleToSentence(rule: AttendanceCriteriaRule): string {
-  const fieldLabel = getFieldLabel(rule.field);
-  const conditionLabel = getConditionLabel(rule.condition);
+  const { subject, verb } = getLaymanFieldDescription(rule.field);
+  const condition = getLaymanCondition(rule.condition);
 
-  // Handle different value types
+  // Handle time range fields (Working Time, Overtime Time)
   if (rule.field === AttendanceCriteriaField.WORKING_TIME || rule.field === AttendanceCriteriaField.OVERTIME_TIME) {
     if (isTimeRangeValue(rule.value)) {
       const start = `${String(rule.value.startTime.hours).padStart(2, '0')}:${String(rule.value.startTime.minutes).padStart(2, '0')}`;
       const end = `${String(rule.value.endTime.hours).padStart(2, '0')}:${String(rule.value.endTime.minutes).padStart(2, '0')}`;
-      return `${fieldLabel}: ${start} to ${end}`;
+      return `${subject} ${verb} ${start} to ${end}`;
     }
   }
 
+  // Handle Leave Times
   if (rule.field === AttendanceCriteriaField.LEAVE_TIMES) {
     if (isLeaveValue(rule.value)) {
       const leaveType = getLeaveTypeLabel(rule.value.leaveType);
-      return `${leaveType} ${conditionLabel} ${rule.value.count} times`;
+      const count = rule.value.count;
+      if (count === 0) {
+        return `${subject} does not take ${leaveType}`;
+      }
+      const timesWord = count === 1 ? 'time' : 'times';
+      return `${subject} takes ${leaveType} ${condition} ${count} ${timesWord}`;
     }
   }
 
-  // Count fields (times)
+  // Handle Count fields (Late In Times, Early Out Times, Absent Times)
   if (rule.field.toString().endsWith('_TIMES') || rule.field === AttendanceCriteriaField.ABSENT_TIMES) {
     if (isTimeValue(rule.value)) {
-      return `${fieldLabel} ${conditionLabel} ${rule.value.hours} times`;
+      const count = rule.value.hours;
+      if (count === 0) {
+        // Special case for "exactly 0 times"
+        if (rule.field === AttendanceCriteriaField.LATE_IN_TIMES) {
+          return `${subject} is not late`;
+        }
+        if (rule.field === AttendanceCriteriaField.EARLY_OUT_TIMES) {
+          return `${subject} does not leave early`;
+        }
+        if (rule.field === AttendanceCriteriaField.ABSENT_TIMES) {
+          return `${subject} is not absent`;
+        }
+      }
+      const timesWord = count === 1 ? 'time' : 'times';
+      return `${subject} ${verb} ${condition} ${count} ${timesWord}`;
     }
   }
 
-  // Minutes fields
+  // Handle Minutes fields (Late In Minutes, Early Out Minutes)
   if (rule.field.toString().endsWith('_MINUTES')) {
     if (isTimeValue(rule.value)) {
-      return `${fieldLabel} ${conditionLabel} ${rule.value.minutes} minutes`;
+      const minutes = rule.value.minutes;
+      const minuteWord = minutes === 1 ? 'minute' : 'minutes';
+      return `${subject} ${verb} ${condition} ${minutes} ${minuteWord}`;
     }
   }
 
-  // Hours fields (working hours, overtime)
+  // Handle Hours fields (Working Hours, Overtime)
   if (isTimeValue(rule.value)) {
-    return `${fieldLabel} ${conditionLabel} ${formatTime(rule.value)}`;
+    const timeStr = formatTime(rule.value);
+    return `${subject} ${verb} ${condition} ${timeStr}`;
   }
 
-  return `${fieldLabel} ${conditionLabel}`;
+  return `${subject} ${verb}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -479,6 +555,50 @@ const payrollItemLabel = computed(() => {
 
 .summary-line strong {
   color: #334155;
+}
+
+/* Applies on section */
+.summary-applies-on {
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.summary-applies-on > strong {
+  color: #334155;
+  display: block;
+  margin-bottom: 0.375rem;
+}
+
+.applies-on-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.applies-on-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.applies-on-list li i {
+  font-size: 0.875rem;
+  color: #0369a1;
+  flex-shrink: 0;
+}
+
+.applies-on-list li.warning-item {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.applies-on-list li.warning-item i {
+  color: #d97706;
 }
 
 .summary-conditions {

@@ -298,6 +298,14 @@ export interface User {
   tags: string[];
   joinDate: string;
   avatar?: string;
+  // Assigned allowance templates
+  assignedTemplates?: UserAssignedTemplate[];
+}
+
+export interface UserAssignedTemplate {
+  id: string;
+  name: string;
+  code: string;
 }
 
 // -----------------------------------------------------------------------------
