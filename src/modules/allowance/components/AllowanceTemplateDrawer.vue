@@ -81,6 +81,7 @@
             v-if="currentStep === 0"
             :form-data="formData"
             :errors="errors"
+            :assignment-count="selectedUserIds.length"
             @update="handleFormUpdate"
             @blur="handleFieldBlur"
           />

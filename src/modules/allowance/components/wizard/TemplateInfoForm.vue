@@ -424,6 +424,12 @@
         />
       </div>
     </div>
+
+    <!-- Summary Card -->
+    <AllowanceSummaryCard
+      :form-data="formData"
+      :assignment-count="props.assignmentCount"
+    />
   </div>
 </template>
 
@@ -440,6 +446,7 @@ import MultiSelect from 'primevue/multiselect';
 // Custom Components
 import AttendanceCriteriaBuilder from './AttendanceCriteriaBuilder.vue';
 import HourlyRateSectionInline from './HourlyRateSectionInline.vue';
+import AllowanceSummaryCard from './AllowanceSummaryCard.vue';
 // Constants
 import {
   ALLOWANCE_TYPE_OPTIONS,
@@ -460,9 +467,12 @@ import { DailyCalculationMode } from '../../types';
 interface Props {
   formData: TemplateInfoFormData;
   errors: Map<string, string>;
+  assignmentCount?: number;
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  assignmentCount: 0
+});
 
 const emit = defineEmits<{
   (e: 'update', field: keyof TemplateInfoFormData, value: any): void;
