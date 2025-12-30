@@ -37,6 +37,15 @@
     <div v-else class="drawer-content">
       <!-- Scrollable Content Area -->
       <div class="scrollable-content">
+        <!-- Copy From Template Section (only in create mode) -->
+        <CopyFromTemplateSection
+          ref="copyFromSectionRef"
+          :templates="availableTemplates"
+          :loading="loadingTemplates"
+          :disabled="isEditMode"
+          @select="handleCopyFromTemplate"
+        />
+
         <!-- Basic Info Section -->
         <BasicInfoSection
           :form-data="formData"
@@ -169,6 +178,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import BasicInfoSection from './wizard/BasicInfoSection.vue';
 import TemplateInfoForm from './wizard/TemplateInfoForm.vue';
 import AssignUsersPanel from './assignment/AssignUsersPanel.vue';
+import CopyFromTemplateSection from './wizard/CopyFromTemplateSection.vue';
 // Composables
 import { useFormValidation } from '../composables';
 // Services
@@ -226,6 +236,11 @@ const selectedUserIds = ref<string[]>([]);
 const assignmentMode = ref<'MANUAL' | 'CRITERIA'>('MANUAL');
 const assignUsersPanelRef = ref();
 
+// Copy from template state
+const availableTemplates = ref<AllowanceTemplate[]>([]);
+const loadingTemplates = ref(false);
+const copyFromSectionRef = ref();
+
 // Form validation - initialized with null, will be reset when drawer opens
 const validationEditingId = ref<string | null>(null);
 
@@ -241,7 +256,8 @@ const {
   updateField,
   resetForm,
   setTouched,
-  touchAll
+  touchAll,
+  populateFromTemplate
 } = useFormValidation(validationEditingId.value);
 
 // ---------------------------------------------------------------------------
@@ -355,6 +371,59 @@ function handleFieldBlur(field: string): void {
 function handleAssignmentUpdate(data: { userIds: string[]; mode: 'MANUAL' | 'CRITERIA' }): void {
   selectedUserIds.value = data.userIds;
   assignmentMode.value = data.mode;
+}
+
+// ---------------------------------------------------------------------------
+// METHODS - Copy From Template
+// ---------------------------------------------------------------------------
+
+async function loadAvailableTemplates(): Promise<void> {
+  loadingTemplates.value = true;
+  try {
+    const response = await allowanceTemplateService.getTemplates({
+      status: AllowanceStatus.ACTIVE,
+      page: 1,
+      limit: 100
+    });
+    availableTemplates.value = response.data;
+  } catch (e) {
+    console.error('Failed to load templates for copy:', e);
+    availableTemplates.value = [];
+  } finally {
+    loadingTemplates.value = false;
+  }
+}
+
+async function handleCopyFromTemplate(templateId: string | null): Promise<void> {
+  if (!templateId) {
+    // User cleared the selection - reset form
+    resetForm();
+    return;
+  }
+
+  try {
+    const template = await allowanceTemplateService.getTemplate(templateId);
+    populateFromTemplate(template);
+
+    // Also copy criteria if present
+    if (template.criteria) {
+      criteriaData.value = { ...template.criteria };
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Template Loaded',
+      detail: `Data from "${template.name}" has been loaded. You can modify as needed.`,
+      life: 3000
+    });
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to load template data',
+      life: 5000
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -555,7 +624,15 @@ watch(() => props.visible, async (newVisible) => {
     } else {
       validationEditingId.value = null;
       resetForm();
+      // Load available templates for copy dropdown (only in create mode)
+      loadAvailableTemplates();
     }
+  } else {
+    // Reset copy section when closing
+    if (copyFromSectionRef.value) {
+      copyFromSectionRef.value.reset();
+    }
+    availableTemplates.value = [];
   }
 });
 </script>

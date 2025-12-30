@@ -65,6 +65,15 @@
         <div class="step-body">
           <!-- Step 1: General (Basic Info + Template Info) -->
           <div v-if="currentStep === 0">
+            <!-- Copy From Template Section (only in create mode) -->
+            <CopyFromTemplateSection
+              ref="copyFromSectionRef"
+              :templates="availableTemplates"
+              :loading="loadingTemplates"
+              :disabled="isEditMode"
+              @select="handleCopyFromTemplate"
+            />
+
             <!-- Basic Info Section -->
             <BasicInfoSection
               :form-data="formData"
@@ -179,6 +188,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import BasicInfoSection from '../components/wizard/BasicInfoSection.vue';
 import TemplateInfoForm from '../components/wizard/TemplateInfoForm.vue';
 import AssignUsersPanel from '../components/assignment/AssignUsersPanel.vue';
+import CopyFromTemplateSection from '../components/wizard/CopyFromTemplateSection.vue';
 // Composables
 import { useFormValidation } from '../composables';
 // Services
@@ -188,13 +198,12 @@ import { WIZARD_STEPS, STATUS_OPTIONS } from '../constants';
 // Types
 import type {
   AllowanceTemplate,
-  AllowanceStatus,
   CriteriaSet,
   TemplateInfoFormData,
   CreateAllowanceTemplateRequest,
   AttendanceCriteriaSet
 } from '../types';
-import { CriteriaGroupOperator, DailyCalculationMode } from '../types';
+import { CriteriaGroupOperator, DailyCalculationMode, AllowanceStatus } from '../types';
 
 // ---------------------------------------------------------------------------
 // PROPS & EMITS
@@ -224,7 +233,8 @@ const {
   updateField,
   resetForm,
   setTouched,
-  touchAll
+  touchAll,
+  populateFromTemplate
 } = useFormValidation(props.id || null);
 
 // ---------------------------------------------------------------------------
@@ -249,6 +259,11 @@ const criteriaData = ref<CriteriaSet>({
 const selectedUserIds = ref<string[]>([]);
 const assignmentMode = ref<'MANUAL' | 'CRITERIA'>('MANUAL');
 const assignUsersPanelRef = ref();
+
+// Copy from template state
+const availableTemplates = ref<AllowanceTemplate[]>([]);
+const loadingTemplates = ref(false);
+const copyFromSectionRef = ref();
 
 // Save state
 const saving = ref(false);
@@ -352,6 +367,59 @@ function handleFieldBlur(field: string): void {
 function handleAssignmentUpdate(data: { userIds: string[]; mode: 'MANUAL' | 'CRITERIA' }): void {
   selectedUserIds.value = data.userIds;
   assignmentMode.value = data.mode;
+}
+
+// ---------------------------------------------------------------------------
+// METHODS - Copy From Template
+// ---------------------------------------------------------------------------
+
+async function loadAvailableTemplates(): Promise<void> {
+  loadingTemplates.value = true;
+  try {
+    const response = await allowanceTemplateService.getTemplates({
+      status: AllowanceStatus.ACTIVE,
+      page: 1,
+      limit: 100
+    });
+    availableTemplates.value = response.data;
+  } catch (e) {
+    console.error('Failed to load templates for copy:', e);
+    availableTemplates.value = [];
+  } finally {
+    loadingTemplates.value = false;
+  }
+}
+
+async function handleCopyFromTemplate(templateId: string | null): Promise<void> {
+  if (!templateId) {
+    // User cleared the selection - reset form
+    resetForm();
+    return;
+  }
+
+  try {
+    const template = await allowanceTemplateService.getTemplate(templateId);
+    populateFromTemplate(template);
+
+    // Also copy criteria if present
+    if (template.criteria) {
+      criteriaData.value = { ...template.criteria };
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Template Loaded',
+      detail: `Data from "${template.name}" has been loaded. You can modify as needed.`,
+      life: 3000
+    });
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to load template data',
+      life: 5000
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -533,6 +601,9 @@ function getStatusSeverity(status: AllowanceStatus): string {
 onMounted(() => {
   if (isEditMode.value) {
     loadTemplate();
+  } else {
+    // Load available templates for copy dropdown (only in create mode)
+    loadAvailableTemplates();
   }
 });
 

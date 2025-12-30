@@ -6,7 +6,7 @@
 import { ref, computed, watch } from 'vue';
 import { allowanceTemplateService } from '../services/allowanceTemplateService';
 import { AllowanceType, AllowanceAmountMode, AllowanceStatus, CriteriaGroupOperator, DailyCalculationMode } from '../types';
-import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet, HourlyRateConfig } from '../types';
+import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet, HourlyRateConfig, AllowanceTemplate } from '../types';
 import { VALIDATION_MESSAGES } from '../constants';
 
 // Default attendance criteria
@@ -398,6 +398,72 @@ export function useFormValidation(editingId?: string | null) {
   }
 
   // ---------------------------------------------------------------------------
+  // COPY FROM TEMPLATE
+  // ---------------------------------------------------------------------------
+
+  function populateFromTemplate(template: AllowanceTemplate): void {
+    isResetting.value = true;
+
+    // Generate new name and code
+    const newName = `Copy of ${template.name}`;
+    const newCode = `${template.code}_COPY`;
+
+    // Map all template fields to form data
+    formData.value = {
+      name: newName,
+      code: newCode,
+      description: template.description || '',
+      type: template.type,
+      amountMode: template.amountMode || AllowanceAmountMode.FIXED,
+      amount: template.amount,
+      formulaExpression: template.formulaExpression || '',
+      formulaVariables: template.formulaVariables || [],
+      currency: template.currency || 'MYR',
+      taxable: template.taxable ?? true,
+      prorate: template.prorate ?? false,
+      // Daily specific
+      dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
+      ratePerDay: template.ratePerDay ?? null,
+      includeNonWorkingDays: template.includeNonWorkingDays ?? false,
+      applyOnNormalWorkday: template.applyOnNormalWorkday ?? true,
+      applyOnRestday: template.applyOnRestday ?? false,
+      applyOnOffday: template.applyOnOffday ?? false,
+      applyOnHoliday: template.applyOnHoliday ?? false,
+      filterByShift: template.filterByShift ?? false,
+      applyOnShifts: template.applyOnShifts || [],
+      filterByWorkLocation: template.filterByWorkLocation ?? false,
+      applyOnWorkLocations: template.applyOnWorkLocations || [],
+      hourlyRateConfig: template.hourlyRateConfig || createDefaultHourlyRateConfig(),
+      payrollAdditionalItem: template.payrollAdditionalItem || '',
+      // Monthly specific
+      prorateByJoinDate: template.prorateByJoinDate ?? true,
+      prorateByLeaveDate: template.prorateByLeaveDate ?? false,
+      // One-off specific
+      payoutDate: template.payoutDate ? new Date(template.payoutDate) : null,
+      payoutMonth: template.payoutMonth || '',
+      // Common - reset effective dates for new template
+      effectiveStart: new Date(),
+      effectiveEnd: null,
+      status: AllowanceStatus.ACTIVE,
+      attendanceCriteria: template.attendanceCriteria || createDefaultAttendanceCriteria()
+    };
+
+    // Clear validation state
+    errors.value.clear();
+    touched.value.clear();
+    isDirty.value = true; // Mark as dirty since we populated data
+    codeCheckResult.value = null;
+
+    // Trigger code uniqueness check for the new code
+    checkCodeUniqueness(newCode);
+
+    // Reset flag after Vue processes the changes
+    setTimeout(() => {
+      isResetting.value = false;
+    }, 0);
+  }
+
+  // ---------------------------------------------------------------------------
   // STEP VALIDATION (for wizard)
   // ---------------------------------------------------------------------------
 
@@ -494,6 +560,7 @@ export function useFormValidation(editingId?: string | null) {
     setFormData,
     updateField,
     resetForm,
-    getFormData
+    getFormData,
+    populateFromTemplate
   };
 }

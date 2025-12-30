@@ -24,7 +24,6 @@
       :paginator="true"
       :rows="10"
       :rowsPerPageOptions="[10, 25, 50]"
-      selectionMode="multiple"
       v-model:selection="selectedAssignmentsForTable"
       v-model:filters="filters"
       filterDisplay="row"
@@ -32,10 +31,10 @@
       responsiveLayout="scroll"
       class="users-table"
       :rowClass="getRowClass"
-      @rowSelect="handleRowSelect"
-      @rowUnselect="handleRowUnselect"
-      @rowSelectAll="handleSelectAllAssignments"
-      @rowUnselectAll="handleDeselectAllAssignments"
+      @row-select="handleRowSelect"
+      @row-unselect="handleRowUnselect"
+      @row-select-all="handleSelectAllAssignments"
+      @row-unselect-all="handleDeselectAllAssignments"
     >
       <template #empty>
         <div class="table-empty">
@@ -52,11 +51,7 @@
         </div>
       </template>
 
-      <Column selectionMode="multiple" headerStyle="width: 3rem" class="checkbox-column">
-        <template #filter>
-          <span></span>
-        </template>
-      </Column>
+      <Column selectionMode="multiple" headerStyle="width: 3rem" :showFilterMenu="false" class="checkbox-column" />
 
       <Column field="userCode" header="Employee ID" sortable :showFilterMenu="false" style="min-width: 140px">
         <template #body="{ data }">
@@ -121,14 +116,23 @@
         </template>
       </Column>
 
-      <Column field="assignedAt" header="Assigned Date" sortable style="min-width: 130px">
+      <Column field="assignedAt" header="Assigned Date" sortable :showFilterMenu="false" style="min-width: 130px">
         <template #body="{ data }">
           <span class="assigned-date">{{ formatDate(data.assignedAt) }}</span>
+        </template>
+        <template #filter="{ filterModel, filterCallback }">
+          <InputText
+            v-model="filterModel.value"
+            type="text"
+            @input="filterCallback()"
+            placeholder="Search..."
+            class="p-column-filter"
+          />
         </template>
       </Column>
 
       <!-- Clear Filter Column -->
-      <Column headerStyle="width: 3.5rem" :showFilterMenu="false">
+      <Column headerStyle="width: 3rem" :showFilterMenu="false">
         <template #filter>
           <Button
             v-if="hasActiveFilters"
@@ -227,11 +231,7 @@
             </div>
           </template>
 
-          <Column selectionMode="multiple" headerStyle="width: 3rem" class="checkbox-column">
-            <template #filter>
-              <span></span>
-            </template>
-          </Column>
+          <Column selectionMode="multiple" headerStyle="width: 3rem" :showFilterMenu="false" class="checkbox-column" />
 
           <Column field="code" header="Employee ID" sortable :showFilterMenu="false" style="min-width: 100px; width: 100px">
             <template #body="{ data }">
@@ -448,7 +448,8 @@ const filters = ref<DataTableFilterMeta>({
   userCode: { value: null, matchMode: FilterMatchMode.CONTAINS },
   userName: { value: null, matchMode: FilterMatchMode.CONTAINS },
   userPosition: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  userDepartment: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  userDepartment: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  assignedAt: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
 
 // Drawer table filters
@@ -523,7 +524,9 @@ function handleRowUnselect(event: { data: AllowanceAssignment }): void {
 }
 
 function handleSelectAllAssignments(): void {
-  selectedAssignmentIds.value = assignments.value.map(a => a.id);
+  // Select all displayed assignments
+  selectedAssignmentIds.value = displayedAssignments.value.map(a => a.id);
+  selectedAssignmentsForTable.value = [...displayedAssignments.value];
 }
 
 function handleDeselectAllAssignments(): void {
@@ -674,7 +677,8 @@ function clearAllFilters(): void {
     userCode: { value: null, matchMode: FilterMatchMode.CONTAINS },
     userName: { value: null, matchMode: FilterMatchMode.CONTAINS },
     userPosition: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    userDepartment: { value: null, matchMode: FilterMatchMode.CONTAINS }
+    userDepartment: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    assignedAt: { value: null, matchMode: FilterMatchMode.CONTAINS }
   };
 }
 
@@ -704,15 +708,12 @@ function checkDrawerActiveFilters(): void {
 // WATCHERS
 // ---------------------------------------------------------------------------
 
-// Sync table selection with selectedAssignmentIds
+// Sync selectedAssignmentIds when table selection changes (header checkbox click)
 watch(
-  selectedAssignmentIds,
-  (newIds) => {
-    selectedAssignmentsForTable.value = displayedAssignments.value.filter((a) =>
-      newIds.includes(a.id)
-    );
-  },
-  { immediate: true }
+  selectedAssignmentsForTable,
+  (newSelection) => {
+    selectedAssignmentIds.value = newSelection.map(a => a.id);
+  }
 );
 
 // Watch filters
@@ -768,95 +769,143 @@ defineExpose({
   margin-bottom: 1rem;
 }
 
-/* Users Table */
+/* ============================================================
+   USERS TABLE - MODERN CLEAN DESIGN
+   ============================================================ */
+
 .users-table {
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
   overflow: hidden;
 }
 
-.users-table :deep(.p-datatable-tbody > tr > td) {
-  font-size: 0.8rem;
+/* Table wrapper - ensure proper overflow handling */
+.users-table :deep(.p-datatable-wrapper) {
+  overflow-x: auto;
 }
 
 /* ============================================================
-   TABLE HEADER STYLING
+   HEADER ROW STYLING
    ============================================================ */
 
-/* Header row - all columns */
+/* Header row - column titles */
 .users-table :deep(.p-datatable-thead > tr:first-child > th) {
   font-weight: 600;
+  font-size: 0.8125rem;
   color: #1e40af;
   background-color: #f1f5f9;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.75rem;
   border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-/* Filter row - all columns */
+/* Filter row - search inputs */
 .users-table :deep(.p-datatable-thead > tr:nth-child(2) > th) {
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background-color: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
 }
 
 /* ============================================================
-   CHECKBOX COLUMN ALIGNMENT FIX
-   Create visual rowspan effect for checkbox column
+   CHECKBOX COLUMN - CLEAN ALIGNMENT
    ============================================================ */
 
-/* Header row - checkbox column: extend to cover filter row visually */
+/* Checkbox column header */
 .users-table :deep(.p-datatable-thead > tr:first-child > th:first-child) {
-  position: relative;
   background-color: #f1f5f9;
   text-align: center;
   vertical-align: middle;
-  border-bottom: none;
-  z-index: 2;
+  padding: 0.75rem 0.5rem;
+  width: 3rem;
+  min-width: 3rem;
+  max-width: 3rem;
 }
 
-/* Create pseudo-element to extend background into filter row */
-.users-table :deep(.p-datatable-thead > tr:first-child > th:first-child::after) {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -100%;
-  height: 100%;
+/* Checkbox column filter row - match the filter row height but keep same background */
+.users-table :deep(.p-datatable-thead > tr:nth-child(2) > th:first-child) {
   background-color: #f1f5f9;
   border-bottom: 1px solid #e2e8f0;
-  z-index: 1;
-}
-
-/* Filter row - checkbox column: make invisible but maintain structure */
-.users-table :deep(.p-datatable-thead > tr:nth-child(2) > th:first-child) {
-  background-color: transparent;
-  border-top: none;
   padding: 0.5rem;
-  visibility: hidden;
+  width: 3rem;
+  min-width: 3rem;
+  max-width: 3rem;
 }
 
-/* Body cells - checkbox column */
+/* Hide any filter icons in checkbox column */
+.users-table :deep(.p-datatable-thead > tr > th:first-child .p-column-filter-menu-button),
+.users-table :deep(.p-datatable-thead > tr > th:first-child .p-column-filter-clear-button) {
+  display: none !important;
+}
+
+/* Checkbox column body cells */
 .users-table :deep(.p-datatable-tbody > tr > td:first-child) {
   text-align: center;
   vertical-align: middle;
+  padding: 0.625rem 0.5rem;
+  width: 3rem;
+  min-width: 3rem;
+  max-width: 3rem;
 }
 
-/* Center checkbox in header and body */
-.users-table :deep(.p-datatable-thead > tr:first-child > th:first-child .p-checkbox),
-.users-table :deep(.p-datatable-tbody > tr > td:first-child .p-checkbox) {
+/* Center checkboxes using flexbox */
+.users-table :deep(.p-datatable-thead th:first-child .p-checkbox),
+.users-table :deep(.p-datatable-tbody td:first-child .p-checkbox) {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0 auto;
 }
+
+/* ============================================================
+   BODY CELLS STYLING
+   ============================================================ */
+
+.users-table :deep(.p-datatable-tbody > tr > td) {
+  font-size: 0.8rem;
+  padding: 0.625rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Alternating row colors for better readability */
+.users-table :deep(.p-datatable-tbody > tr:nth-child(even)) {
+  background-color: #fafbfc;
+}
+
+.users-table :deep(.p-datatable-tbody > tr:hover) {
+  background-color: #f0f4ff;
+}
+
+/* ============================================================
+   FILTER INPUT STYLING
+   ============================================================ */
 
 .users-table :deep(.p-column-filter) {
   width: 100%;
-  font-size: 0.8rem;
+  box-sizing: border-box;
 }
 
 .users-table :deep(.p-column-filter .p-inputtext) {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.8rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.users-table :deep(.p-column-filter .p-inputtext:focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.users-table :deep(.p-column-filter .p-inputtext::placeholder) {
+  color: #94a3b8;
+  font-size: 0.75rem;
 }
 
 /* Clear Filter Button */
@@ -867,6 +916,47 @@ defineExpose({
 .clear-filter-btn:hover {
   color: #ef4444;
   background-color: #fee2e2 !important;
+}
+
+/* ============================================================
+   PAGINATION STYLING
+   ============================================================ */
+
+.users-table :deep(.p-paginator) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+.users-table :deep(.p-paginator .p-dropdown) {
+  display: flex;
+  align-items: center;
+  height: 2rem;
+}
+
+.users-table :deep(.p-paginator .p-dropdown .p-dropdown-label) {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+}
+
+.users-table :deep(.p-paginator .p-paginator-pages) {
+  display: flex;
+  align-items: center;
+}
+
+.users-table :deep(.p-paginator .p-paginator-page),
+.users-table :deep(.p-paginator .p-paginator-first),
+.users-table :deep(.p-paginator .p-paginator-prev),
+.users-table :deep(.p-paginator .p-paginator-next),
+.users-table :deep(.p-paginator .p-paginator-last) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
 }
 
 
@@ -1011,93 +1101,117 @@ defineExpose({
   margin-bottom: 0.75rem;
 }
 
-/* Compact table styling for drawer */
-.drawer-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.drawer-table :deep(.p-datatable-thead > tr > th) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.drawer-table :deep(.p-column-filter) {
-  font-size: 0.75rem;
-}
-
-.drawer-table :deep(.p-column-filter .p-inputtext) {
-  padding: 0.35rem 0.5rem;
-  font-size: 0.75rem;
-}
-
 /* ============================================================
-   DRAWER TABLE - HEADER STYLING
+   DRAWER TABLE - COMPACT CLEAN DESIGN
    ============================================================ */
 
-/* Header row - all columns */
+/* Header row - column titles */
 .drawer-table :deep(.p-datatable-thead > tr:first-child > th) {
   font-weight: 600;
+  font-size: 0.75rem;
   color: #1e40af;
   background-color: #f1f5f9;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.625rem;
   border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-/* Filter row - all columns */
+/* Filter row - search inputs */
 .drawer-table :deep(.p-datatable-thead > tr:nth-child(2) > th) {
-  padding: 0.35rem 0.5rem;
+  padding: 0.375rem 0.625rem;
   background-color: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
 }
 
-/* ============================================================
-   DRAWER TABLE - CHECKBOX COLUMN ALIGNMENT FIX
-   ============================================================ */
-
-/* Header row - checkbox column: extend to cover filter row visually */
+/* Checkbox column header */
 .drawer-table :deep(.p-datatable-thead > tr:first-child > th:first-child) {
-  position: relative;
   background-color: #f1f5f9;
   text-align: center;
   vertical-align: middle;
-  border-bottom: none;
-  z-index: 2;
+  padding: 0.625rem 0.375rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
 }
 
-/* Create pseudo-element to extend background into filter row */
-.drawer-table :deep(.p-datatable-thead > tr:first-child > th:first-child::after) {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -100%;
-  height: 100%;
+/* Checkbox column filter row - match background */
+.drawer-table :deep(.p-datatable-thead > tr:nth-child(2) > th:first-child) {
   background-color: #f1f5f9;
   border-bottom: 1px solid #e2e8f0;
-  z-index: 1;
+  padding: 0.375rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
 }
 
-/* Filter row - checkbox column: make invisible but maintain structure */
-.drawer-table :deep(.p-datatable-thead > tr:nth-child(2) > th:first-child) {
-  background-color: transparent;
-  border-top: none;
-  padding: 0.35rem 0.5rem;
-  visibility: hidden;
+/* Hide any filter icons in checkbox column */
+.drawer-table :deep(.p-datatable-thead > tr > th:first-child .p-column-filter-menu-button),
+.drawer-table :deep(.p-datatable-thead > tr > th:first-child .p-column-filter-clear-button) {
+  display: none !important;
 }
 
-/* Body cells - checkbox column */
+/* Body cells */
+.drawer-table :deep(.p-datatable-tbody > tr > td) {
+  font-size: 0.8rem;
+  padding: 0.5rem 0.625rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Checkbox column body cells */
 .drawer-table :deep(.p-datatable-tbody > tr > td:first-child) {
   text-align: center;
   vertical-align: middle;
+  padding: 0.5rem 0.375rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
 }
 
-/* Center checkbox in header and body */
-.drawer-table :deep(.p-datatable-thead > tr:first-child > th:first-child .p-checkbox),
-.drawer-table :deep(.p-datatable-tbody > tr > td:first-child .p-checkbox) {
+/* Center checkboxes */
+.drawer-table :deep(.p-datatable-thead th:first-child .p-checkbox),
+.drawer-table :deep(.p-datatable-tbody td:first-child .p-checkbox) {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 0 auto;
+}
+
+/* Filter inputs */
+.drawer-table :deep(.p-column-filter) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.drawer-table :deep(.p-column-filter .p-inputtext) {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.25rem;
+  background-color: #ffffff;
+}
+
+.drawer-table :deep(.p-column-filter .p-inputtext:focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.drawer-table :deep(.p-column-filter .p-inputtext::placeholder) {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+/* Alternating rows */
+.drawer-table :deep(.p-datatable-tbody > tr:nth-child(even)) {
+  background-color: #fafbfc;
+}
+
+.drawer-table :deep(.p-datatable-tbody > tr:hover) {
+  background-color: #f0f4ff;
 }
 
 .drawer-selection-summary {
