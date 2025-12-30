@@ -117,8 +117,85 @@
           :currency="formData.currency"
         />
 
-        <!-- Fields for Non-Daily types -->
-        <template v-if="formData.type && formData.type !== 'DAILY'">
+        <!-- Fields for MONTHLY type -->
+        <template v-if="formData.type === 'MONTHLY'">
+          <div class="form-row">
+            <!-- Allowance Amount -->
+            <div class="form-field">
+              <label for="monthlyAmount" class="field-label required">Allowance Amount</label>
+              <div class="input-with-prefix">
+                <span class="input-prefix">RM</span>
+                <InputNumber
+                  id="monthlyAmount"
+                  :modelValue="formData.amount"
+                  @update:modelValue="emit('update', 'amount', $event)"
+                  @blur="emit('blur', 'amount')"
+                  mode="decimal"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                  :class="{ 'p-invalid': errors.get('amount') }"
+                  class="w-full"
+                />
+              </div>
+              <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+            </div>
+
+            <!-- Payroll Items -->
+            <div class="form-field">
+              <label for="monthlyPayrollItem" class="field-label required">Payroll Items</label>
+              <Dropdown
+                id="monthlyPayrollItem"
+                :modelValue="formData.payrollAdditionalItem"
+                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                :options="payrollAdditionalItemOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select payroll item"
+                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                class="w-full"
+              />
+              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+            </div>
+          </div>
+
+          <!-- Prorate Options (inline) -->
+          <div class="options-row">
+            <label class="toggle-option">
+              <Checkbox
+                id="prorate"
+                :modelValue="formData.prorate"
+                @update:modelValue="handleProrateToggle($event)"
+                binary
+              />
+              <span class="toggle-label">Enable Proration</span>
+            </label>
+            <!-- Inline sub-options (shown when Enable Proration is checked) -->
+            <template v-if="formData.prorate">
+              <span class="options-divider">|</span>
+              <label class="toggle-option">
+                <Checkbox
+                  id="prorateByJoinDate"
+                  :modelValue="formData.prorateByJoinDate"
+                  @update:modelValue="emit('update', 'prorateByJoinDate', $event)"
+                  binary
+                />
+                <span class="toggle-label">New Joiner</span>
+              </label>
+              <label class="toggle-option">
+                <Checkbox
+                  id="prorateByLeaveDate"
+                  :modelValue="formData.prorateByLeaveDate"
+                  @update:modelValue="emit('update', 'prorateByLeaveDate', $event)"
+                  binary
+                />
+                <span class="toggle-label">Resignee</span>
+              </label>
+            </template>
+          </div>
+        </template>
+
+        <!-- Fields for ONE_OFF type -->
+        <template v-if="formData.type === 'ONE_OFF'">
           <div class="form-row">
             <!-- Amount Mode -->
             <div class="form-field">
@@ -177,34 +254,12 @@
               </div>
             </div>
           </div>
-
-          <!-- Tax & Prorate Options -->
-          <div class="options-row">
-            <label class="toggle-option">
-              <Checkbox
-                id="taxable"
-                :modelValue="formData.taxable"
-                @update:modelValue="emit('update', 'taxable', $event)"
-                binary
-              />
-              <span class="toggle-label">Taxable</span>
-            </label>
-            <label class="toggle-option">
-              <Checkbox
-                id="prorate"
-                :modelValue="formData.prorate"
-                @update:modelValue="emit('update', 'prorate', $event)"
-                binary
-              />
-              <span class="toggle-label">Enable Proration</span>
-            </label>
-          </div>
         </template>
       </div>
     </div>
 
-    <!-- Type-Specific Options -->
-    <div v-if="formData.type" class="form-card">
+    <!-- Type-Specific Options (hide for MONTHLY since it has no options) -->
+    <div v-if="formData.type && formData.type !== 'MONTHLY'" class="form-card">
       <div class="card-header">
         <h3 class="card-title">{{ getTypeLabel(formData.type) }} Options</h3>
       </div>
@@ -309,30 +364,6 @@
                 class="w-full compact-select"
               />
             </div>
-          </div>
-        </template>
-
-        <!-- MONTHLY Options -->
-        <template v-if="formData.type === 'MONTHLY'">
-          <div class="options-row">
-            <label class="toggle-option">
-              <Checkbox
-                id="prorateByJoinDate"
-                :modelValue="formData.prorateByJoinDate"
-                @update:modelValue="emit('update', 'prorateByJoinDate', $event)"
-                binary
-              />
-              <span class="toggle-label">Prorate by join date</span>
-            </label>
-            <label class="toggle-option">
-              <Checkbox
-                id="prorateByLeaveDate"
-                :modelValue="formData.prorateByLeaveDate"
-                @update:modelValue="emit('update', 'prorateByLeaveDate', $event)"
-                binary
-              />
-              <span class="toggle-label">Prorate by resignation date</span>
-            </label>
           </div>
         </template>
 
@@ -500,6 +531,15 @@ function getTypeLabel(type: AllowanceType): string {
 
 function getTypeIcon(type: AllowanceType): string {
   return typeOptions.find((t) => t.value === type)?.icon || 'pi pi-tag';
+}
+
+function handleProrateToggle(value: boolean): void {
+  emit('update', 'prorate', value);
+  // When disabling proration, reset sub-options
+  if (!value) {
+    emit('update', 'prorateByJoinDate', false);
+    emit('update', 'prorateByLeaveDate', false);
+  }
 }
 
 </script>
@@ -719,6 +759,13 @@ function getTypeIcon(type: AllowanceType): string {
 .toggle-label {
   font-size: 0.8125rem;
   color: #374151;
+}
+
+/* Options Divider */
+.options-divider {
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  margin: 0 0.25rem;
 }
 
 /* Daily Options Grid */
