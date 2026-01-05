@@ -5,8 +5,8 @@
 
 import { ref, computed, watch } from 'vue';
 import { allowanceTemplateService } from '../services/allowanceTemplateService';
-import { AllowanceType, AllowanceAmountMode, AllowanceStatus, CriteriaGroupOperator, DailyCalculationMode } from '../types';
-import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet, HourlyRateConfig, AllowanceTemplate } from '../types';
+import { AllowanceType, AllowanceAmountMode, AllowanceStatus, CriteriaGroupOperator, DailyCalculationMode, MonthlyCriteriaCondition, OneOffFrequency, ServicePeriodUnit } from '../types';
+import type { TemplateInfoFormData, ValidationError, ValidationResult, AttendanceCriteriaSet, HourlyRateConfig, AllowanceTemplate, MonthlyCriteria, ServiceEligibility } from '../types';
 import { VALIDATION_MESSAGES } from '../constants';
 
 // Default attendance criteria
@@ -23,6 +23,29 @@ function createDefaultHourlyRateConfig(): HourlyRateConfig {
     ratePerHour: 0,
     dailyCap: null,
     minWorkingHours: null
+  };
+}
+
+// Default monthly criteria
+function createDefaultMonthlyCriteria(): MonthlyCriteria {
+  return {
+    minAttendanceDays: null,
+    attendanceDaysCondition: MonthlyCriteriaCondition.GREATER_THAN_OR_EQUALS,
+    maxLateTimes: null,
+    lateTimesCondition: MonthlyCriteriaCondition.LESS_THAN_OR_EQUALS,
+    maxAbsentDays: null,
+    absentDaysCondition: MonthlyCriteriaCondition.LESS_THAN_OR_EQUALS,
+    requirePerfectAttendance: false
+  };
+}
+
+// Default service eligibility (for One-Off)
+function createDefaultServiceEligibility(): ServiceEligibility {
+  return {
+    minServicePeriod: null,
+    minServicePeriodUnit: ServicePeriodUnit.MONTHS,
+    serviceMilestones: [],
+    prorateByServicePeriod: false
   };
 }
 
@@ -57,9 +80,12 @@ function createDefaultFormData(): TemplateInfoFormData {
     // Monthly specific
     prorateByJoinDate: true,
     prorateByLeaveDate: false,
+    monthlyCriteria: createDefaultMonthlyCriteria(),
     // One-off specific
+    oneOffFrequency: OneOffFrequency.YEARLY,
     payoutDate: null,
     payoutMonth: '',
+    serviceEligibility: createDefaultServiceEligibility(),
     // Common
     effectiveStart: new Date(),
     effectiveEnd: null,
@@ -438,9 +464,12 @@ export function useFormValidation(editingId?: string | null) {
       // Monthly specific
       prorateByJoinDate: template.prorateByJoinDate ?? true,
       prorateByLeaveDate: template.prorateByLeaveDate ?? false,
+      monthlyCriteria: template.monthlyCriteria || createDefaultMonthlyCriteria(),
       // One-off specific
+      oneOffFrequency: template.oneOffFrequency || OneOffFrequency.YEARLY,
       payoutDate: template.payoutDate ? new Date(template.payoutDate) : null,
       payoutMonth: template.payoutMonth || '',
+      serviceEligibility: template.serviceEligibility || createDefaultServiceEligibility(),
       // Common - reset effective dates for new template
       effectiveStart: new Date(),
       effectiveEnd: null,

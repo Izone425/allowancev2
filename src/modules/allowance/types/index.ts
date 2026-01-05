@@ -23,6 +23,18 @@ export enum DailyCalculationMode {
   HOURLY_RATE = 'HOURLY_RATE'        // Rate per hour with conditions
 }
 
+// One-Off frequency type
+export enum OneOffFrequency {
+  YEARLY = 'YEARLY',                          // Repeats every year (Annual Bonus, Hari Raya Bonus)
+  ENTIRE_SERVICE = 'ENTIRE_SERVICE'           // Once in entire employment (Long Service Award)
+}
+
+// Service period unit
+export enum ServicePeriodUnit {
+  MONTHS = 'MONTHS',
+  YEARS = 'YEARS'
+}
+
 export enum AllowanceStatus {
   ACTIVE = 'ACTIVE',
   ARCHIVED = 'ARCHIVED'
@@ -71,6 +83,7 @@ export enum CriteriaGroupOperator {
 // -----------------------------------------------------------------------------
 
 export enum AttendanceCriteriaField {
+  TOTAL_WORKING_DAYS = 'TOTAL_WORKING_DAYS',         // Number of working days (attendance days)
   TOTAL_WORKING_HOURS = 'TOTAL_WORKING_HOURS',
   TOTAL_ACTUAL_OVERTIME = 'TOTAL_ACTUAL_OVERTIME',
   TOTAL_APPROVED_OVERTIME = 'TOTAL_APPROVED_OVERTIME',
@@ -96,6 +109,18 @@ export enum AttendanceCriteriaCondition {
   EQUALS = 'EQUALS',
   NOT_EQUALS = 'NOT_EQUALS',
   BETWEEN = 'BETWEEN'
+}
+
+// -----------------------------------------------------------------------------
+// MONTHLY CRITERIA ENUMS
+// -----------------------------------------------------------------------------
+
+export enum MonthlyCriteriaCondition {
+  GREATER_THAN = 'GREATER_THAN',
+  GREATER_THAN_OR_EQUALS = 'GREATER_THAN_OR_EQUALS',
+  LESS_THAN = 'LESS_THAN',
+  LESS_THAN_OR_EQUALS = 'LESS_THAN_OR_EQUALS',
+  EQUALS = 'EQUALS'
 }
 
 // -----------------------------------------------------------------------------
@@ -137,10 +162,13 @@ export interface AllowanceTemplate {
   // MONTHLY
   prorateByJoinDate?: boolean;
   prorateByLeaveDate?: boolean;
+  monthlyCriteria?: MonthlyCriteria;
 
   // ONE_OFF
-  payoutDate?: string; // ISO date string
-  payoutMonth?: string; // YYYY-MM format
+  oneOffFrequency?: OneOffFrequency;        // YEARLY or ENTIRE_SERVICE
+  payoutDate?: string;                       // ISO date string
+  payoutMonth?: string;                      // YYYY-MM format
+  serviceEligibility?: ServiceEligibility;   // Service period requirements
 
   // Effective dates
   effectiveStart: string; // ISO date string
@@ -240,6 +268,38 @@ export interface AttendanceCriteriaGroup {
 export interface AttendanceCriteriaSet {
   groupOperator: CriteriaGroupOperator; // AND/OR between groups
   groups: AttendanceCriteriaGroup[];
+}
+
+// -----------------------------------------------------------------------------
+// MONTHLY CRITERIA INTERFACES
+// -----------------------------------------------------------------------------
+
+export interface MonthlyCriteria {
+  // Attendance
+  minAttendanceDays: number | null;
+  attendanceDaysCondition: MonthlyCriteriaCondition;
+  // Late
+  maxLateTimes: number | null;
+  lateTimesCondition: MonthlyCriteriaCondition;
+  // Absent
+  maxAbsentDays: number | null;
+  absentDaysCondition: MonthlyCriteriaCondition;
+  // Perfect attendance (no late, no absent, no early out)
+  requirePerfectAttendance: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// ONE-OFF SERVICE ELIGIBILITY INTERFACES
+// -----------------------------------------------------------------------------
+
+export interface ServiceEligibility {
+  // Minimum service period required
+  minServicePeriod: number | null;           // e.g., 6
+  minServicePeriodUnit: ServicePeriodUnit;   // MONTHS or YEARS
+  // For Long Service Award - exact milestones
+  serviceMilestones: number[];               // e.g., [5, 10, 15, 20, 25] years
+  // Proration
+  prorateByServicePeriod: boolean;           // Prorate amount for partial service
 }
 
 // -----------------------------------------------------------------------------
@@ -364,9 +424,12 @@ export interface CreateAllowanceTemplateRequest {
   // Monthly specific
   prorateByJoinDate?: boolean;
   prorateByLeaveDate?: boolean;
+  monthlyCriteria?: MonthlyCriteria;
   // One-off specific
+  oneOffFrequency?: OneOffFrequency;
   payoutDate?: string;
   payoutMonth?: string;
+  serviceEligibility?: ServiceEligibility;
   // Common
   effectiveStart: string;
   effectiveEnd?: string;
@@ -450,9 +513,12 @@ export interface TemplateInfoFormData {
   // Monthly specific
   prorateByJoinDate: boolean;
   prorateByLeaveDate: boolean;
+  monthlyCriteria: MonthlyCriteria;
   // One-off specific
+  oneOffFrequency: OneOffFrequency;
   payoutDate: Date | null;
   payoutMonth: string;
+  serviceEligibility: ServiceEligibility;
   // Common
   effectiveStart: Date | null;
   effectiveEnd: Date | null;

@@ -11,7 +11,10 @@ import {
   CriteriaGroupOperator,
   AttendanceCriteriaField,
   AttendanceCriteriaCondition,
-  DailyCalculationMode
+  DailyCalculationMode,
+  MonthlyCriteriaCondition,
+  OneOffFrequency,
+  ServicePeriodUnit
 } from '../types';
 
 // -----------------------------------------------------------------------------
@@ -253,6 +256,10 @@ export const GROUP_OPERATOR_LABELS: Record<CriteriaGroupOperator, string> = {
 
 export const ATTENDANCE_CRITERIA_FIELD_OPTIONS = [
   {
+    value: AttendanceCriteriaField.TOTAL_WORKING_DAYS,
+    label: 'Total Working Days'
+  },
+  {
     value: AttendanceCriteriaField.TOTAL_WORKING_HOURS,
     label: 'Total Working Hours'
   },
@@ -346,6 +353,74 @@ export const ATTENDANCE_CONDITION_LABELS: Record<AttendanceCriteriaCondition, st
   [AttendanceCriteriaCondition.NOT_EQUALS]: '!=',
   [AttendanceCriteriaCondition.BETWEEN]: 'Between'
 };
+
+// -----------------------------------------------------------------------------
+// MONTHLY CRITERIA OPTIONS
+// -----------------------------------------------------------------------------
+
+export const MONTHLY_CRITERIA_CONDITION_OPTIONS = [
+  {
+    value: MonthlyCriteriaCondition.GREATER_THAN_OR_EQUALS,
+    label: 'At least'
+  },
+  {
+    value: MonthlyCriteriaCondition.GREATER_THAN,
+    label: 'More than'
+  },
+  {
+    value: MonthlyCriteriaCondition.LESS_THAN_OR_EQUALS,
+    label: 'At most'
+  },
+  {
+    value: MonthlyCriteriaCondition.LESS_THAN,
+    label: 'Less than'
+  },
+  {
+    value: MonthlyCriteriaCondition.EQUALS,
+    label: 'Exactly'
+  }
+] as const;
+
+// -----------------------------------------------------------------------------
+// ONE-OFF FREQUENCY OPTIONS
+// -----------------------------------------------------------------------------
+
+export const ONE_OFF_FREQUENCY_OPTIONS = [
+  {
+    value: OneOffFrequency.YEARLY,
+    label: 'Yearly',
+    description: 'Paid once every year (e.g., Annual Bonus, Hari Raya Bonus)',
+    icon: 'pi pi-calendar'
+  },
+  {
+    value: OneOffFrequency.ENTIRE_SERVICE,
+    label: 'Entire Year of Service',
+    description: 'Paid once in entire employment (e.g., Long Service Award)',
+    icon: 'pi pi-star'
+  }
+] as const;
+
+// -----------------------------------------------------------------------------
+// SERVICE PERIOD UNIT OPTIONS
+// -----------------------------------------------------------------------------
+
+export const SERVICE_PERIOD_UNIT_OPTIONS = [
+  { value: ServicePeriodUnit.MONTHS, label: 'Months' },
+  { value: ServicePeriodUnit.YEARS, label: 'Years' }
+] as const;
+
+// -----------------------------------------------------------------------------
+// SERVICE MILESTONE OPTIONS (for Long Service Award)
+// -----------------------------------------------------------------------------
+
+export const SERVICE_MILESTONE_OPTIONS = [
+  { value: 5, label: '5 Years' },
+  { value: 10, label: '10 Years' },
+  { value: 15, label: '15 Years' },
+  { value: 20, label: '20 Years' },
+  { value: 25, label: '25 Years' },
+  { value: 30, label: '30 Years' }
+] as const;
 
 // -----------------------------------------------------------------------------
 // LEAVE TYPE OPTIONS (for Leave criteria)

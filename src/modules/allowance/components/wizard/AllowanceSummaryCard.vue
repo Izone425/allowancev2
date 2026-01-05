@@ -52,10 +52,10 @@
         </ul>
       </div>
 
-      <!-- No conditions message (Daily only) -->
-      <p v-else-if="formData.type === 'DAILY'" class="summary-line summary-info">
+      <!-- No conditions message (Daily and Monthly) -->
+      <p v-else-if="formData.type === 'DAILY' || formData.type === 'MONTHLY'" class="summary-line summary-info">
         <i class="pi pi-info-circle"></i>
-        <span>No conditions - applies to all eligible days</span>
+        <span>No conditions - applies to all eligible {{ formData.type === 'DAILY' ? 'days' : 'months' }}</span>
       </p>
 
       <!-- Monthly prorate info -->
@@ -144,6 +144,7 @@ function formatTime(time: AttendanceTimeValue): string {
 // Layman-friendly field descriptions
 function getLaymanFieldDescription(field: AttendanceCriteriaField): { subject: string; verb: string } {
   const fieldMap: Record<string, { subject: string; verb: string }> = {
+    'TOTAL_WORKING_DAYS': { subject: 'Employee', verb: 'attends' },
     'TOTAL_WORKING_HOURS': { subject: 'Employee', verb: 'works for' },
     'TOTAL_ACTUAL_OVERTIME': { subject: 'Employee', verb: 'does overtime of' },
     'TOTAL_APPROVED_OVERTIME': { subject: 'Employee', verb: 'has approved overtime of' },
@@ -195,27 +196,12 @@ function isTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | Att
 // ---------------------------------------------------------------------------
 
 const isReadyToShow = computed(() => {
-  // Must have name and type
+  // Must have name and type to show summary
   if (!props.formData.name?.trim() || !props.formData.type) return false;
 
-  // For Daily type
-  if (props.formData.type === 'DAILY') {
-    // For Hourly Rate mode, check hourlyRateConfig
-    if (props.formData.dailyCalculationMode === DailyCalculationMode.HOURLY_RATE) {
-      return (props.formData.hourlyRateConfig?.ratePerHour || 0) > 0;
-    }
-    // For Fixed Daily mode, check amount
-    return (props.formData.amount || 0) > 0;
-  }
-
-  // For Monthly/One-off types
-  // For Fixed amount mode, check amount
-  if (props.formData.amountMode === 'FIXED') {
-    return (props.formData.amount || 0) > 0;
-  }
-
-  // For Formula mode, check expression
-  return !!props.formData.formulaExpression?.trim();
+  // Show summary as soon as name and type are set
+  // Amount/formula will be shown in description if available
+  return true;
 });
 
 // ---------------------------------------------------------------------------
@@ -352,11 +338,11 @@ const shiftsSentence = computed(() => shiftsInfo.value.text);
 const locationsSentence = computed(() => locationsInfo.value.text);
 
 // ---------------------------------------------------------------------------
-// COMPUTED - Conditions (Daily only)
+// COMPUTED - Conditions (Daily and Monthly)
 // ---------------------------------------------------------------------------
 
 const hasConditions = computed(() => {
-  if (props.formData.type !== 'DAILY') return false;
+  if (props.formData.type !== 'DAILY' && props.formData.type !== 'MONTHLY') return false;
   const criteria = props.formData.attendanceCriteria;
   if (!criteria?.groups?.length) return false;
   return criteria.groups.some(g => g.rules?.length > 0);
@@ -393,6 +379,15 @@ const conditionsList = computed(() => {
 function formatRuleToSentence(rule: AttendanceCriteriaRule): string {
   const { subject, verb } = getLaymanFieldDescription(rule.field);
   const condition = getLaymanCondition(rule.condition);
+
+  // Handle Total Working Days field (shows days count)
+  if (rule.field === AttendanceCriteriaField.TOTAL_WORKING_DAYS) {
+    if (isTimeValue(rule.value)) {
+      const days = rule.value.hours; // days stored in hours field
+      const dayWord = days === 1 ? 'day' : 'days';
+      return `${subject} ${verb} ${condition} ${days} ${dayWord}`;
+    }
+  }
 
   // Handle time range fields (Working Time, Overtime Time)
   if (rule.field === AttendanceCriteriaField.WORKING_TIME || rule.field === AttendanceCriteriaField.OVERTIME_TIME) {

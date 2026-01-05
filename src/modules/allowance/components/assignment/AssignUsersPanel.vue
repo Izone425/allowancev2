@@ -145,28 +145,6 @@
       </Column>
     </DataTable>
 
-    <!-- Selection Summary -->
-    <Card v-if="hasSelectedAssignments" class="selection-summary">
-      <template #content>
-        <div class="summary-content">
-          <div class="summary-info">
-            <Badge :value="selectedAssignmentCount" size="large" severity="warn" />
-            <span class="summary-text">
-              employee{{ selectedAssignmentCount !== 1 ? 's' : '' }} selected for unassignment
-            </span>
-          </div>
-          <div class="summary-actions">
-            <Button
-              label="Clear Selection"
-              icon="pi pi-times"
-              class="p-button-text"
-              @click="handleClearSelection"
-            />
-          </div>
-        </div>
-      </template>
-    </Card>
-
     <!-- Assign Employee Drawer -->
     <Sidebar
       v-model:visible="showAssignDrawer"

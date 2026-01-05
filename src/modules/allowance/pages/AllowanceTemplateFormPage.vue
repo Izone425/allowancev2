@@ -203,7 +203,7 @@ import type {
   CreateAllowanceTemplateRequest,
   AttendanceCriteriaSet
 } from '../types';
-import { CriteriaGroupOperator, DailyCalculationMode, AllowanceStatus } from '../types';
+import { CriteriaGroupOperator, DailyCalculationMode, AllowanceStatus, OneOffFrequency, ServicePeriodUnit } from '../types';
 
 // ---------------------------------------------------------------------------
 // PROPS & EMITS
@@ -457,7 +457,11 @@ async function handleSaveAndActivate(): Promise<void> {
       life: 3000
     });
 
-    router.push({ name: 'allowance-template-details', params: { id: template.id } });
+    // Reset dirty flag to prevent "Unsaved Changes" dialog
+    isDirty.value = false;
+
+    // Navigate to list page
+    router.push({ name: 'allowance-templates' });
   } catch (e) {
     toast.add({
       severity: 'error',
@@ -483,12 +487,34 @@ async function saveTemplate(status: AllowanceStatus): Promise<AllowanceTemplate>
     currency: formData.value.currency,
     taxable: formData.value.taxable,
     prorate: formData.value.prorate,
+    // Daily specific
+    dailyCalculationMode: formData.value.dailyCalculationMode,
     ratePerDay: formData.value.ratePerDay || undefined,
     includeNonWorkingDays: formData.value.includeNonWorkingDays,
+    applyOnNormalWorkday: formData.value.applyOnNormalWorkday,
+    applyOnRestday: formData.value.applyOnRestday,
+    applyOnOffday: formData.value.applyOnOffday,
+    applyOnHoliday: formData.value.applyOnHoliday,
+    filterByShift: formData.value.filterByShift,
+    applyOnShifts: formData.value.applyOnShifts,
+    filterByWorkLocation: formData.value.filterByWorkLocation,
+    applyOnWorkLocations: formData.value.applyOnWorkLocations,
+    hourlyRateConfig: formData.value.hourlyRateConfig,
+    payrollAdditionalItem: formData.value.payrollAdditionalItem || undefined,
+    // Attendance criteria (for Daily and Monthly types)
+    attendanceCriteria: formData.value.attendanceCriteria?.groups?.length > 0
+      ? formData.value.attendanceCriteria
+      : undefined,
+    // Monthly specific
     prorateByJoinDate: formData.value.prorateByJoinDate,
     prorateByLeaveDate: formData.value.prorateByLeaveDate,
+    monthlyCriteria: formData.value.monthlyCriteria,
+    // One-off specific
+    oneOffFrequency: formData.value.oneOffFrequency,
     payoutDate: formData.value.payoutDate?.toISOString().split('T')[0] || undefined,
     payoutMonth: formData.value.payoutMonth || undefined,
+    serviceEligibility: formData.value.serviceEligibility,
+    // Common
     effectiveStart: formData.value.effectiveStart?.toISOString().split('T')[0] || '',
     effectiveEnd: formData.value.effectiveEnd?.toISOString().split('T')[0] || undefined,
     status,
@@ -529,6 +555,25 @@ async function loadTemplate(): Promise<void> {
       minWorkingHours: null
     };
 
+    // Default monthly criteria
+    const defaultMonthlyCriteria = {
+      minAttendanceDays: null,
+      attendanceDaysCondition: 'GREATER_THAN_OR_EQUALS',
+      maxLateTimes: null,
+      lateTimesCondition: 'LESS_THAN_OR_EQUALS',
+      maxAbsentDays: null,
+      absentDaysCondition: 'LESS_THAN_OR_EQUALS',
+      requirePerfectAttendance: false
+    };
+
+    // Default service eligibility
+    const defaultServiceEligibility = {
+      minServicePeriod: null,
+      minServicePeriodUnit: ServicePeriodUnit.MONTHS,
+      serviceMilestones: [],
+      prorateByServicePeriod: false
+    };
+
     // Map template to form data
     setFormData({
       name: template.name,
@@ -541,7 +586,7 @@ async function loadTemplate(): Promise<void> {
       formulaVariables: template.formulaVariables || [],
       currency: template.currency,
       taxable: template.taxable,
-      prorate: template.prorate,
+      prorate: template.prorate ?? false,
       // Daily specific
       dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
       ratePerDay: template.ratePerDay || null,
@@ -555,12 +600,16 @@ async function loadTemplate(): Promise<void> {
       filterByWorkLocation: template.filterByWorkLocation || false,
       applyOnWorkLocations: template.applyOnWorkLocations || [],
       hourlyRateConfig: template.hourlyRateConfig || defaultHourlyRateConfig,
+      payrollAdditionalItem: template.payrollAdditionalItem || '',
       // Monthly specific
-      prorateByJoinDate: template.prorateByJoinDate || false,
-      prorateByLeaveDate: template.prorateByLeaveDate || false,
+      prorateByJoinDate: template.prorateByJoinDate ?? false,
+      prorateByLeaveDate: template.prorateByLeaveDate ?? false,
+      monthlyCriteria: template.monthlyCriteria || defaultMonthlyCriteria,
       // One-off specific
+      oneOffFrequency: template.oneOffFrequency || OneOffFrequency.YEARLY,
       payoutDate: template.payoutDate ? new Date(template.payoutDate) : null,
       payoutMonth: template.payoutMonth || '',
+      serviceEligibility: template.serviceEligibility || defaultServiceEligibility,
       // Common
       effectiveStart: template.effectiveStart ? new Date(template.effectiveStart) : null,
       effectiveEnd: template.effectiveEnd ? new Date(template.effectiveEnd) : null,

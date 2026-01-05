@@ -104,8 +104,24 @@
                     />
                   </div>
 
+                  <!-- Days Value (TOTAL_WORKING_DAYS) -->
+                  <div v-if="isDaysField(rule.field)" class="field-group value-input-simple">
+                    <label class="field-label">Value</label>
+                    <div class="simple-value-group">
+                      <InputNumber
+                        :modelValue="getSimpleTimeValue(rule.value).hours"
+                        @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'hours', val ?? 0)"
+                        :min="0"
+                        :max="31"
+                        class="simple-number"
+                        :inputClass="'simple-input-field'"
+                      />
+                      <span class="value-unit">days</span>
+                    </div>
+                  </div>
+
                   <!-- Simple Count Value (LATE_IN_TIMES, ABSENT_TIMES, etc.) -->
-                  <div v-if="isCountField(rule.field)" class="field-group value-input-simple">
+                  <div v-else-if="isCountField(rule.field)" class="field-group value-input-simple">
                     <label class="field-label">Value</label>
                     <div class="simple-value-group">
                       <InputNumber
@@ -341,13 +357,18 @@ function isTimeRangeField(field: AttendanceCriteriaField): boolean {
   return field === AttendanceFieldEnum.WORKING_TIME || field === AttendanceFieldEnum.OVERTIME_TIME;
 }
 
-// Check if field is a simple count field (just a number)
+// Check if field is a simple count field (just a number, shows "times")
 function isCountField(field: AttendanceCriteriaField): boolean {
   return field === AttendanceFieldEnum.LATE_IN_TIMES ||
          field === AttendanceFieldEnum.EARLY_OUT_TIMES ||
          field === AttendanceFieldEnum.EXTENDED_BREAK_TIMES ||
          field === AttendanceFieldEnum.SHORT_HOURS_TIMES ||
          field === AttendanceFieldEnum.ABSENT_TIMES;
+}
+
+// Check if field is a days count field (shows "days")
+function isDaysField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.TOTAL_WORKING_DAYS;
 }
 
 // Check if field is a leave field (has leave type selection)

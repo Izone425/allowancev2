@@ -197,26 +197,13 @@
         <!-- Fields for ONE_OFF type -->
         <template v-if="formData.type === 'ONE_OFF'">
           <div class="form-row">
-            <!-- Amount Mode -->
+            <!-- Allowance Amount -->
             <div class="form-field">
-              <label class="field-label required">Amount Mode</label>
-              <SelectButton
-                :modelValue="formData.amountMode"
-                @update:modelValue="emit('update', 'amountMode', $event)"
-                :options="amountModeOptions"
-                optionLabel="label"
-                optionValue="value"
-                class="amount-mode-buttons"
-              />
-            </div>
-
-            <!-- Fixed Amount -->
-            <div v-if="formData.amountMode === 'FIXED'" class="form-field">
-              <label for="amount" class="field-label required">Amount</label>
+              <label for="oneOffAmount" class="field-label required">Allowance Amount</label>
               <div class="input-with-prefix">
                 <span class="input-prefix">RM</span>
                 <InputNumber
-                  id="amount"
+                  id="oneOffAmount"
                   :modelValue="formData.amount"
                   @update:modelValue="emit('update', 'amount', $event)"
                   @blur="emit('blur', 'amount')"
@@ -229,31 +216,51 @@
               </div>
               <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
             </div>
-          </div>
 
-          <!-- Formula Expression -->
-          <div v-if="formData.amountMode === 'FORMULA'" class="form-row">
-            <div class="form-field full-width">
-              <label for="formulaExpression" class="field-label required">Formula Expression</label>
-              <Textarea
-                id="formulaExpression"
-                :modelValue="formData.formulaExpression"
-                @update:modelValue="emit('update', 'formulaExpression', $event)"
-                @blur="emit('blur', 'formulaExpression')"
-                placeholder="e.g., basicSalary * 0.1"
-                rows="2"
-                :class="{ 'p-invalid': errors.get('formulaExpression') }"
-                class="w-full formula-input"
+            <!-- Payroll Items -->
+            <div class="form-field">
+              <label for="oneOffPayrollItem" class="field-label required">Payroll Items</label>
+              <Dropdown
+                id="oneOffPayrollItem"
+                :modelValue="formData.payrollAdditionalItem"
+                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                :options="payrollAdditionalItemOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select payroll item"
+                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                class="w-full"
               />
-              <small v-if="errors.get('formulaExpression')" class="p-error">{{ errors.get('formulaExpression') }}</small>
-              <div class="formula-variables">
-                <span class="variables-label">Available variables:</span>
-                <div class="variables-list">
-                  <code v-for="v in ['basicSalary', 'workingDays', 'attendedDays', 'tenure', 'jobGrade']" :key="v">{{ v }}</code>
-                </div>
-              </div>
+              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
             </div>
           </div>
+
+          <!-- One-Off Frequency Selection -->
+          <div class="frequency-section">
+            <label class="section-label">Payment Frequency</label>
+            <div class="frequency-selector">
+              <label
+                v-for="freq in oneOffFrequencyOptions"
+                :key="freq.value"
+                class="frequency-option"
+                :class="{ selected: formData.oneOffFrequency === freq.value }"
+              >
+                <input
+                  type="radio"
+                  :value="freq.value"
+                  :checked="formData.oneOffFrequency === freq.value"
+                  @change="emit('update', 'oneOffFrequency', freq.value)"
+                  class="hidden-radio"
+                />
+                <i :class="freq.icon" class="freq-icon"></i>
+                <div class="freq-content">
+                  <span class="freq-label">{{ freq.label }}</span>
+                  <span class="freq-desc">{{ freq.description }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
         </template>
       </div>
     </div>
@@ -443,8 +450,8 @@
       </div>
     </div>
 
-    <!-- Condition Section (only for DAILY type) -->
-    <div v-if="formData.type === 'DAILY'" class="form-card">
+    <!-- Condition Section (for DAILY and MONTHLY types) -->
+    <div v-if="formData.type === 'DAILY' || formData.type === 'MONTHLY'" class="form-card">
       <div class="card-header">
         <h3 class="card-title">Condition</h3>
       </div>
@@ -485,7 +492,8 @@ import {
   SHIFT_OPTIONS,
   WORK_LOCATION_OPTIONS,
   DAILY_CALCULATION_MODE_OPTIONS,
-  PAYROLL_ADDITIONAL_ITEM_OPTIONS
+  PAYROLL_ADDITIONAL_ITEM_OPTIONS,
+  ONE_OFF_FREQUENCY_OPTIONS
 } from '../../constants';
 // Types
 import type { TemplateInfoFormData, AllowanceType } from '../../types';
@@ -520,6 +528,7 @@ const shiftOptions = SHIFT_OPTIONS;
 const workLocationOptions = WORK_LOCATION_OPTIONS;
 const dailyCalculationModeOptions = DAILY_CALCULATION_MODE_OPTIONS;
 const payrollAdditionalItemOptions = PAYROLL_ADDITIONAL_ITEM_OPTIONS;
+const oneOffFrequencyOptions = ONE_OFF_FREQUENCY_OPTIONS;
 
 // ---------------------------------------------------------------------------
 // METHODS
@@ -961,6 +970,85 @@ function handleProrateToggle(value: boolean): void {
   line-height: 1.3;
 }
 
+/* One-Off Frequency Section */
+.frequency-section {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.frequency-selector {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.frequency-option {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.frequency-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.frequency-option.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.freq-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.frequency-option.selected .freq-icon {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.freq-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.freq-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.frequency-option.selected .freq-label {
+  color: #1d4ed8;
+}
+
+.freq-desc {
+  font-size: 0.6875rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .form-row {
@@ -990,6 +1078,14 @@ function handleProrateToggle(value: boolean): void {
   }
 
   .calc-mode-option {
+    flex: none;
+  }
+
+  .frequency-selector {
+    flex-direction: column;
+  }
+
+  .frequency-option {
     flex: none;
   }
 }

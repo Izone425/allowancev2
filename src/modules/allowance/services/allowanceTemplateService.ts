@@ -112,6 +112,10 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     effectiveEnd: null,
     status: 'ACTIVE',
     includeNonWorkingDays: false,
+    applyOnNormalWorkday: true,
+    applyOnRestday: false,
+    applyOnOffday: false,
+    applyOnHoliday: false,
     criteria: {
       groupOperator: 'AND',
       groups: [
@@ -120,6 +124,19 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
           operator: 'AND',
           rules: [
             { id: 'rule_1', field: 'DEPARTMENT', operator: 'IN', value: ['dept_sales', 'dept_marketing'] }
+          ]
+        }
+      ]
+    },
+    attendanceCriteria: {
+      groupOperator: 'AND',
+      groups: [
+        {
+          id: 'att_grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'att_rule_1', field: 'TOTAL_WORKING_HOURS', condition: 'GREATER_THAN_OR_EQUALS', value: { hours: 8, minutes: 0 } },
+            { id: 'att_rule_2', field: 'LATE_IN_MINUTES', condition: 'LESS_THAN_OR_EQUALS', value: { hours: 0, minutes: 15 } }
           ]
         }
       ]
@@ -144,9 +161,33 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     effectiveEnd: '2024-12-31',
     status: 'ACTIVE',
     includeNonWorkingDays: true,
+    applyOnNormalWorkday: true,
+    applyOnRestday: true,
+    applyOnOffday: false,
+    applyOnHoliday: true,
     criteria: {
       groupOperator: 'AND',
-      groups: []
+      groups: [
+        {
+          id: 'grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'rule_1', field: 'DEPARTMENT', operator: 'IN', value: ['dept_ops'] }
+          ]
+        }
+      ]
+    },
+    attendanceCriteria: {
+      groupOperator: 'AND',
+      groups: [
+        {
+          id: 'att_grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'att_rule_1', field: 'TOTAL_WORKING_HOURS', condition: 'GREATER_THAN_OR_EQUALS', value: { hours: 6, minutes: 0 } }
+          ]
+        }
+      ]
     },
     assignmentCount: 48,
     createdAt: '2024-02-01T00:00:00Z',
@@ -168,9 +209,35 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     effectiveEnd: null,
     status: 'ACTIVE',
     includeNonWorkingDays: false,
+    applyOnNormalWorkday: true,
+    applyOnRestday: false,
+    applyOnOffday: false,
+    applyOnHoliday: false,
     criteria: {
       groupOperator: 'AND',
-      groups: []
+      groups: [
+        {
+          id: 'grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'rule_1', field: 'CUSTOM_TAGS', operator: 'CONTAINS_ANY', value: ['outstation-eligible'] }
+          ]
+        }
+      ]
+    },
+    attendanceCriteria: {
+      groupOperator: 'AND',
+      groups: [
+        {
+          id: 'att_grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'att_rule_1', field: 'TOTAL_WORKING_HOURS', condition: 'GREATER_THAN_OR_EQUALS', value: { hours: 8, minutes: 0 } },
+            { id: 'att_rule_2', field: 'LATE_IN_TIMES', condition: 'EQUALS', value: { hours: 0, minutes: 0 } },
+            { id: 'att_rule_3', field: 'EARLY_OUT_TIMES', condition: 'EQUALS', value: { hours: 0, minutes: 0 } }
+          ]
+        }
+      ]
     },
     assignmentCount: 0,
     createdAt: '2024-11-01T00:00:00Z',
@@ -209,6 +276,15 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
         }
       ]
     },
+    monthlyCriteria: {
+      minAttendanceDays: 20,
+      attendanceDaysCondition: 'GREATER_THAN_OR_EQUALS',
+      maxLateTimes: 3,
+      lateTimesCondition: 'LESS_THAN_OR_EQUALS',
+      maxAbsentDays: 2,
+      absentDaysCondition: 'LESS_THAN_OR_EQUALS',
+      requirePerfectAttendance: false
+    },
     assignmentCount: 156,
     createdAt: '2024-01-01T00:00:00Z',
     createdBy: 'admin',
@@ -240,6 +316,15 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
           ]
         }
       ]
+    },
+    monthlyCriteria: {
+      minAttendanceDays: 15,
+      attendanceDaysCondition: 'GREATER_THAN_OR_EQUALS',
+      maxLateTimes: null,
+      lateTimesCondition: 'LESS_THAN_OR_EQUALS',
+      maxAbsentDays: 5,
+      absentDaysCondition: 'LESS_THAN_OR_EQUALS',
+      requirePerfectAttendance: false
     },
     assignmentCount: 12,
     createdAt: '2024-01-01T00:00:00Z',
@@ -282,6 +367,15 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
         }
       ]
     },
+    monthlyCriteria: {
+      minAttendanceDays: 18,
+      attendanceDaysCondition: 'GREATER_THAN_OR_EQUALS',
+      maxLateTimes: 5,
+      lateTimesCondition: 'LESS_THAN_OR_EQUALS',
+      maxAbsentDays: 3,
+      absentDaysCondition: 'LESS_THAN_OR_EQUALS',
+      requirePerfectAttendance: false
+    },
     assignmentCount: 67,
     createdAt: '2024-03-01T00:00:00Z',
     createdBy: 'hr_manager',
@@ -313,6 +407,15 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
           ]
         }
       ]
+    },
+    monthlyCriteria: {
+      minAttendanceDays: 22,
+      attendanceDaysCondition: 'GREATER_THAN_OR_EQUALS',
+      maxLateTimes: 0,
+      lateTimesCondition: 'EQUALS',
+      maxAbsentDays: 0,
+      absentDaysCondition: 'EQUALS',
+      requirePerfectAttendance: true
     },
     assignmentCount: 89,
     createdAt: '2024-01-01T00:00:00Z',
@@ -371,7 +474,15 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     payoutDate: '2024-04-05',
     criteria: {
       groupOperator: 'AND',
-      groups: []
+      groups: [
+        {
+          id: 'grp_1',
+          operator: 'AND',
+          rules: [
+            { id: 'rule_1', field: 'EMPLOYMENT_TYPE', operator: 'IN', value: ['PERMANENT', 'CONTRACT'] }
+          ]
+        }
+      ]
     },
     assignmentCount: 200,
     createdAt: '2024-03-01T00:00:00Z',
@@ -600,6 +711,66 @@ export const allowanceTemplateService = {
   async createTemplate(
     data: CreateAllowanceTemplateRequest
   ): Promise<AllowanceTemplate> {
+    if (USE_MOCK_DATA) {
+      await mockDelay(500);
+
+      // Generate a new ID
+      const newId = `tpl_${String(MOCK_TEMPLATES.length + 1).padStart(3, '0')}`;
+      const now = new Date().toISOString();
+
+      const newTemplate: AllowanceTemplate = {
+        id: newId,
+        name: data.name,
+        code: data.code,
+        description: data.description,
+        type: data.type,
+        amountMode: data.amountMode,
+        amount: data.amount,
+        formulaExpression: data.formulaExpression,
+        formulaVariables: data.formulaVariables,
+        currency: data.currency || 'MYR',
+        taxable: data.taxable,
+        prorate: data.prorate,
+        // Daily specific
+        dailyCalculationMode: data.dailyCalculationMode,
+        ratePerDay: data.ratePerDay,
+        includeNonWorkingDays: data.includeNonWorkingDays,
+        applyOnNormalWorkday: data.applyOnNormalWorkday,
+        applyOnRestday: data.applyOnRestday,
+        applyOnOffday: data.applyOnOffday,
+        applyOnHoliday: data.applyOnHoliday,
+        filterByShift: data.filterByShift,
+        applyOnShifts: data.applyOnShifts,
+        filterByWorkLocation: data.filterByWorkLocation,
+        applyOnWorkLocations: data.applyOnWorkLocations,
+        hourlyRateConfig: data.hourlyRateConfig,
+        payrollAdditionalItem: data.payrollAdditionalItem,
+        attendanceCriteria: data.attendanceCriteria,
+        // Monthly specific
+        prorateByJoinDate: data.prorateByJoinDate,
+        prorateByLeaveDate: data.prorateByLeaveDate,
+        monthlyCriteria: data.monthlyCriteria,
+        // One-off specific
+        payoutDate: data.payoutDate,
+        payoutMonth: data.payoutMonth,
+        // Common
+        effectiveStart: data.effectiveStart,
+        effectiveEnd: data.effectiveEnd,
+        status: data.status || 'ACTIVE',
+        criteria: data.criteria ? { ...data.criteria, id: `crit_${newId}`, templateId: newId } : undefined,
+        // Audit
+        createdAt: now,
+        createdBy: 'current_user',
+        updatedAt: now,
+        updatedBy: 'current_user',
+        assignmentCount: 0
+      };
+
+      // Add to mock data
+      MOCK_TEMPLATES.push(newTemplate);
+
+      return { ...newTemplate };
+    }
     return httpClient.post<AllowanceTemplate>(API_ENDPOINTS.templates, data);
   },
 
@@ -610,6 +781,68 @@ export const allowanceTemplateService = {
     id: string,
     data: UpdateAllowanceTemplateRequest
   ): Promise<AllowanceTemplate> {
+    if (USE_MOCK_DATA) {
+      await mockDelay(400);
+
+      const templateIndex = MOCK_TEMPLATES.findIndex(t => t.id === id);
+      if (templateIndex === -1) {
+        throw new ApiError(404, 'Template not found');
+      }
+
+      const now = new Date().toISOString();
+      const existingTemplate = MOCK_TEMPLATES[templateIndex];
+
+      // Update template with new data
+      const updatedTemplate: AllowanceTemplate = {
+        ...existingTemplate,
+        name: data.name ?? existingTemplate.name,
+        code: data.code ?? existingTemplate.code,
+        description: data.description ?? existingTemplate.description,
+        type: data.type ?? existingTemplate.type,
+        amountMode: data.amountMode ?? existingTemplate.amountMode,
+        amount: data.amount ?? existingTemplate.amount,
+        formulaExpression: data.formulaExpression ?? existingTemplate.formulaExpression,
+        formulaVariables: data.formulaVariables ?? existingTemplate.formulaVariables,
+        currency: data.currency ?? existingTemplate.currency,
+        taxable: data.taxable ?? existingTemplate.taxable,
+        prorate: data.prorate ?? existingTemplate.prorate,
+        // Daily specific
+        dailyCalculationMode: data.dailyCalculationMode ?? existingTemplate.dailyCalculationMode,
+        ratePerDay: data.ratePerDay ?? existingTemplate.ratePerDay,
+        includeNonWorkingDays: data.includeNonWorkingDays ?? existingTemplate.includeNonWorkingDays,
+        applyOnNormalWorkday: data.applyOnNormalWorkday ?? existingTemplate.applyOnNormalWorkday,
+        applyOnRestday: data.applyOnRestday ?? existingTemplate.applyOnRestday,
+        applyOnOffday: data.applyOnOffday ?? existingTemplate.applyOnOffday,
+        applyOnHoliday: data.applyOnHoliday ?? existingTemplate.applyOnHoliday,
+        filterByShift: data.filterByShift ?? existingTemplate.filterByShift,
+        applyOnShifts: data.applyOnShifts ?? existingTemplate.applyOnShifts,
+        filterByWorkLocation: data.filterByWorkLocation ?? existingTemplate.filterByWorkLocation,
+        applyOnWorkLocations: data.applyOnWorkLocations ?? existingTemplate.applyOnWorkLocations,
+        hourlyRateConfig: data.hourlyRateConfig ?? existingTemplate.hourlyRateConfig,
+        payrollAdditionalItem: data.payrollAdditionalItem ?? existingTemplate.payrollAdditionalItem,
+        attendanceCriteria: data.attendanceCriteria ?? existingTemplate.attendanceCriteria,
+        // Monthly specific
+        prorateByJoinDate: data.prorateByJoinDate ?? existingTemplate.prorateByJoinDate,
+        prorateByLeaveDate: data.prorateByLeaveDate ?? existingTemplate.prorateByLeaveDate,
+        monthlyCriteria: data.monthlyCriteria ?? existingTemplate.monthlyCriteria,
+        // One-off specific
+        payoutDate: data.payoutDate ?? existingTemplate.payoutDate,
+        payoutMonth: data.payoutMonth ?? existingTemplate.payoutMonth,
+        // Common
+        effectiveStart: data.effectiveStart ?? existingTemplate.effectiveStart,
+        effectiveEnd: data.effectiveEnd ?? existingTemplate.effectiveEnd,
+        status: data.status ?? existingTemplate.status,
+        criteria: data.criteria ? { ...data.criteria, id: existingTemplate.criteria?.id, templateId: id } : existingTemplate.criteria,
+        // Audit
+        updatedAt: now,
+        updatedBy: 'current_user'
+      };
+
+      // Update in mock data
+      MOCK_TEMPLATES[templateIndex] = updatedTemplate;
+
+      return { ...updatedTemplate };
+    }
     return httpClient.put<AllowanceTemplate>(API_ENDPOINTS.template(id), data);
   },
 
@@ -715,6 +948,46 @@ export const allowanceTemplateService = {
     templateId: string,
     data: BulkAssignRequest
   ): Promise<{ assigned: number; skipped: number; assignments: AllowanceAssignment[] }> {
+    if (USE_MOCK_DATA) {
+      await mockDelay(300);
+
+      const now = new Date().toISOString();
+      const assignments: AllowanceAssignment[] = [];
+
+      // Create mock assignments for each user
+      for (const userId of data.userIds) {
+        const user = MOCK_USERS.find(u => u.id === userId);
+        if (user) {
+          const assignment: AllowanceAssignment = {
+            id: `asgn_${templateId}_${userId}`,
+            templateId,
+            userId,
+            userName: user.name,
+            userCode: user.code,
+            userDepartment: user.department,
+            userPosition: user.position,
+            effectiveStartOverride: data.effectiveStartOverride,
+            effectiveEndOverride: data.effectiveEndOverride,
+            assignedAt: now,
+            assignedBy: 'current_user',
+            assignmentSource: data.source
+          };
+          assignments.push(assignment);
+        }
+      }
+
+      // Update template assignment count
+      const template = MOCK_TEMPLATES.find(t => t.id === templateId);
+      if (template) {
+        template.assignmentCount = (template.assignmentCount || 0) + assignments.length;
+      }
+
+      return {
+        assigned: assignments.length,
+        skipped: data.userIds.length - assignments.length,
+        assignments
+      };
+    }
     return httpClient.post(API_ENDPOINTS.assignments(templateId), data);
   },
 
