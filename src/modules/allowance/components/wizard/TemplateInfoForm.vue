@@ -9,103 +9,118 @@
         <div class="form-row">
           <!-- Type Selection -->
           <div class="form-field">
-            <label for="type" class="field-label required">Allowance Type</label>
-            <Dropdown
-              id="type"
-              :modelValue="formData.type"
-              @update:modelValue="emit('update', 'type', $event)"
-              :options="typeOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select allowance type"
-              :class="{ 'p-invalid': errors.get('type') }"
-              class="w-full"
-            >
-              <template #value="slotProps">
-                <div v-if="slotProps.value" class="type-dropdown-value">
-                  <i :class="getTypeIcon(slotProps.value)" class="type-icon-small"></i>
-                  <span>{{ getTypeLabel(slotProps.value) }}</span>
-                </div>
-                <span v-else class="placeholder-text">{{ slotProps.placeholder }}</span>
-              </template>
-              <template #option="slotProps">
-                <div class="type-dropdown-option">
-                  <i :class="slotProps.option.icon" class="type-option-icon"></i>
-                  <div class="type-option-content">
-                    <span class="type-option-label">{{ slotProps.option.label }}</span>
-                    <span class="type-option-desc">{{ slotProps.option.description }}</span>
+            <label for="type" class="field-label" :class="{ required: !readonly }">Allowance Type</label>
+            <template v-if="!readonly">
+              <Dropdown
+                id="type"
+                :modelValue="formData.type"
+                @update:modelValue="emit('update', 'type', $event)"
+                :options="typeOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select allowance type"
+                :class="{ 'p-invalid': errors.get('type') }"
+                class="w-full"
+              >
+                <template #value="slotProps">
+                  <div v-if="slotProps.value" class="type-dropdown-value">
+                    <i :class="getTypeIcon(slotProps.value)" class="type-icon-small"></i>
+                    <span>{{ getTypeLabel(slotProps.value) }}</span>
                   </div>
-                </div>
-              </template>
-            </Dropdown>
-            <small v-if="errors.get('type')" class="p-error">{{ errors.get('type') }}</small>
+                  <span v-else class="placeholder-text">{{ slotProps.placeholder }}</span>
+                </template>
+                <template #option="slotProps">
+                  <div class="type-dropdown-option">
+                    <i :class="slotProps.option.icon" class="type-option-icon"></i>
+                    <div class="type-option-content">
+                      <span class="type-option-label">{{ slotProps.option.label }}</span>
+                      <span class="type-option-desc">{{ slotProps.option.description }}</span>
+                    </div>
+                  </div>
+                </template>
+              </Dropdown>
+              <small v-if="errors.get('type')" class="p-error">{{ errors.get('type') }}</small>
+            </template>
+            <div v-else class="readonly-value type-badge">
+              <i :class="getTypeIcon(formData.type!)" class="type-icon-small"></i>
+              <span>{{ getTypeLabel(formData.type!) }}</span>
+            </div>
           </div>
 
           <!-- Calculation Mode for Daily type -->
           <div v-if="formData.type === 'DAILY'" class="form-field">
-            <label class="field-label required">Calculation Mode</label>
-            <div class="calc-mode-selector">
-              <label
-                v-for="mode in dailyCalculationModeOptions"
-                :key="mode.value"
-                class="calc-mode-option"
-                :class="{ selected: formData.dailyCalculationMode === mode.value }"
-              >
-                <input
-                  type="radio"
-                  :value="mode.value"
-                  :checked="formData.dailyCalculationMode === mode.value"
-                  @change="emit('update', 'dailyCalculationMode', mode.value)"
-                  class="hidden-radio"
-                />
-                <i :class="mode.icon" class="mode-icon"></i>
-                <div class="mode-content">
-                  <span class="mode-label">{{ mode.label }}</span>
-                  <span class="mode-desc">{{ mode.description }}</span>
-                </div>
-              </label>
-            </div>
+            <label class="field-label" :class="{ required: !readonly }">Calculation Mode</label>
+            <template v-if="!readonly">
+              <div class="calc-mode-selector">
+                <label
+                  v-for="mode in dailyCalculationModeOptions"
+                  :key="mode.value"
+                  class="calc-mode-option"
+                  :class="{ selected: formData.dailyCalculationMode === mode.value }"
+                >
+                  <input
+                    type="radio"
+                    :value="mode.value"
+                    :checked="formData.dailyCalculationMode === mode.value"
+                    @change="emit('update', 'dailyCalculationMode', mode.value)"
+                    class="hidden-radio"
+                  />
+                  <i :class="mode.icon" class="mode-icon"></i>
+                  <div class="mode-content">
+                    <span class="mode-label">{{ mode.label }}</span>
+                    <span class="mode-desc">{{ mode.description }}</span>
+                  </div>
+                </label>
+              </div>
+            </template>
+            <div v-else class="readonly-value">{{ getCalcModeLabel(formData.dailyCalculationMode) }}</div>
           </div>
         </div>
 
         <!-- Payroll Additional Item (for Daily type - both Fixed Daily and Hourly Rate) -->
         <div v-if="formData.type === 'DAILY'" class="form-row">
           <div class="form-field">
-            <label for="payrollAdditionalItem" class="field-label required">Payroll Additional Item</label>
-            <Dropdown
-              id="payrollAdditionalItem"
-              :modelValue="formData.payrollAdditionalItem"
-              @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-              :options="payrollAdditionalItemOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select payroll item"
-              :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-              class="w-full"
-            />
-            <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+            <label for="payrollAdditionalItem" class="field-label" :class="{ required: !readonly }">Payroll Additional Item</label>
+            <template v-if="!readonly">
+              <Dropdown
+                id="payrollAdditionalItem"
+                :modelValue="formData.payrollAdditionalItem"
+                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                :options="payrollAdditionalItemOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select payroll item"
+                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                class="w-full"
+              />
+              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+            </template>
+            <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
           </div>
         </div>
 
         <!-- Fixed Daily Amount (when FIXED_DAILY mode) -->
         <div v-if="formData.type === 'DAILY' && formData.dailyCalculationMode === DailyCalculationMode.FIXED_DAILY" class="form-row">
           <div class="form-field">
-            <label for="amount" class="field-label required">Amount (per day)</label>
-            <div class="input-with-prefix">
-              <span class="input-prefix">RM</span>
-              <InputNumber
-                id="amount"
-                :modelValue="formData.amount"
-                @update:modelValue="emit('update', 'amount', $event)"
-                @blur="emit('blur', 'amount')"
-                mode="decimal"
-                :minFractionDigits="2"
-                :maxFractionDigits="2"
-                :class="{ 'p-invalid': errors.get('amount') }"
-                class="w-full"
-              />
-            </div>
-            <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+            <label for="amount" class="field-label" :class="{ required: !readonly }">Amount (per day)</label>
+            <template v-if="!readonly">
+              <div class="input-with-prefix">
+                <span class="input-prefix">RM</span>
+                <InputNumber
+                  id="amount"
+                  :modelValue="formData.amount"
+                  @update:modelValue="emit('update', 'amount', $event)"
+                  @blur="emit('blur', 'amount')"
+                  mode="decimal"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                  :class="{ 'p-invalid': errors.get('amount') }"
+                  class="w-full"
+                />
+              </div>
+              <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+            </template>
+            <div v-else class="readonly-value amount">{{ formatAmount(formData.amount) }}</div>
           </div>
         </div>
 
@@ -115,6 +130,7 @@
           :modelValue="formData.hourlyRateConfig"
           @update:modelValue="emit('update', 'hourlyRateConfig', $event)"
           :currency="formData.currency"
+          :readonly="readonly"
         />
 
         <!-- Fields for MONTHLY type -->
@@ -122,74 +138,92 @@
           <div class="form-row">
             <!-- Allowance Amount -->
             <div class="form-field">
-              <label for="monthlyAmount" class="field-label required">Allowance Amount</label>
-              <div class="input-with-prefix">
-                <span class="input-prefix">RM</span>
-                <InputNumber
-                  id="monthlyAmount"
-                  :modelValue="formData.amount"
-                  @update:modelValue="emit('update', 'amount', $event)"
-                  @blur="emit('blur', 'amount')"
-                  mode="decimal"
-                  :minFractionDigits="2"
-                  :maxFractionDigits="2"
-                  :class="{ 'p-invalid': errors.get('amount') }"
-                  class="w-full"
-                />
-              </div>
-              <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+              <label for="monthlyAmount" class="field-label" :class="{ required: !readonly }">Allowance Amount</label>
+              <template v-if="!readonly">
+                <div class="input-with-prefix">
+                  <span class="input-prefix">RM</span>
+                  <InputNumber
+                    id="monthlyAmount"
+                    :modelValue="formData.amount"
+                    @update:modelValue="emit('update', 'amount', $event)"
+                    @blur="emit('blur', 'amount')"
+                    mode="decimal"
+                    :minFractionDigits="2"
+                    :maxFractionDigits="2"
+                    :class="{ 'p-invalid': errors.get('amount') }"
+                    class="w-full"
+                  />
+                </div>
+                <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+              </template>
+              <div v-else class="readonly-value amount">{{ formatAmount(formData.amount) }}</div>
             </div>
 
             <!-- Payroll Items -->
             <div class="form-field">
-              <label for="monthlyPayrollItem" class="field-label required">Payroll Items</label>
-              <Dropdown
-                id="monthlyPayrollItem"
-                :modelValue="formData.payrollAdditionalItem"
-                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-                :options="payrollAdditionalItemOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select payroll item"
-                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-                class="w-full"
-              />
-              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+              <label for="monthlyPayrollItem" class="field-label" :class="{ required: !readonly }">Payroll Items</label>
+              <template v-if="!readonly">
+                <Dropdown
+                  id="monthlyPayrollItem"
+                  :modelValue="formData.payrollAdditionalItem"
+                  @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                  :options="payrollAdditionalItemOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select payroll item"
+                  :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                  class="w-full"
+                />
+                <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+              </template>
+              <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
             </div>
           </div>
 
           <!-- Prorate Options (inline) -->
           <div class="options-row">
-            <label class="toggle-option">
-              <Checkbox
-                id="prorate"
-                :modelValue="formData.prorate"
-                @update:modelValue="handleProrateToggle($event)"
-                binary
-              />
-              <span class="toggle-label">Enable Proration</span>
-            </label>
-            <!-- Inline sub-options (shown when Enable Proration is checked) -->
-            <template v-if="formData.prorate">
-              <span class="options-divider">|</span>
+            <template v-if="!readonly">
               <label class="toggle-option">
                 <Checkbox
-                  id="prorateByJoinDate"
-                  :modelValue="formData.prorateByJoinDate"
-                  @update:modelValue="emit('update', 'prorateByJoinDate', $event)"
+                  id="prorate"
+                  :modelValue="formData.prorate"
+                  @update:modelValue="handleProrateToggle($event)"
                   binary
                 />
-                <span class="toggle-label">New Joiner</span>
+                <span class="toggle-label">Enable Proration</span>
               </label>
-              <label class="toggle-option">
-                <Checkbox
-                  id="prorateByLeaveDate"
-                  :modelValue="formData.prorateByLeaveDate"
-                  @update:modelValue="emit('update', 'prorateByLeaveDate', $event)"
-                  binary
-                />
-                <span class="toggle-label">Resignee</span>
-              </label>
+              <!-- Inline sub-options (shown when Enable Proration is checked) -->
+              <template v-if="formData.prorate">
+                <span class="options-divider">|</span>
+                <label class="toggle-option">
+                  <Checkbox
+                    id="prorateByJoinDate"
+                    :modelValue="formData.prorateByJoinDate"
+                    @update:modelValue="emit('update', 'prorateByJoinDate', $event)"
+                    binary
+                  />
+                  <span class="toggle-label">New Joiner</span>
+                </label>
+                <label class="toggle-option">
+                  <Checkbox
+                    id="prorateByLeaveDate"
+                    :modelValue="formData.prorateByLeaveDate"
+                    @update:modelValue="emit('update', 'prorateByLeaveDate', $event)"
+                    binary
+                  />
+                  <span class="toggle-label">Resignee</span>
+                </label>
+              </template>
+            </template>
+            <template v-else>
+              <div class="readonly-option">
+                <span class="option-label">Proration:</span>
+                <span class="option-value">{{ formData.prorate ? 'Enabled' : 'Disabled' }}</span>
+                <template v-if="formData.prorate">
+                  <span class="option-detail" v-if="formData.prorateByJoinDate">(New Joiner)</span>
+                  <span class="option-detail" v-if="formData.prorateByLeaveDate">(Resignee)</span>
+                </template>
+              </div>
             </template>
           </div>
         </template>
@@ -199,85 +233,93 @@
           <div class="form-row">
             <!-- Allowance Amount -->
             <div class="form-field">
-              <label for="oneOffAmount" class="field-label required">Allowance Amount</label>
-              <div class="input-with-prefix">
-                <span class="input-prefix">RM</span>
-                <InputNumber
-                  id="oneOffAmount"
-                  :modelValue="formData.amount"
-                  @update:modelValue="emit('update', 'amount', $event)"
-                  @blur="emit('blur', 'amount')"
-                  mode="decimal"
-                  :minFractionDigits="2"
-                  :maxFractionDigits="2"
-                  :class="{ 'p-invalid': errors.get('amount') }"
-                  class="w-full"
-                />
-              </div>
-              <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+              <label for="oneOffAmount" class="field-label" :class="{ required: !readonly }">Allowance Amount</label>
+              <template v-if="!readonly">
+                <div class="input-with-prefix">
+                  <span class="input-prefix">RM</span>
+                  <InputNumber
+                    id="oneOffAmount"
+                    :modelValue="formData.amount"
+                    @update:modelValue="emit('update', 'amount', $event)"
+                    @blur="emit('blur', 'amount')"
+                    mode="decimal"
+                    :minFractionDigits="2"
+                    :maxFractionDigits="2"
+                    :class="{ 'p-invalid': errors.get('amount') }"
+                    class="w-full"
+                  />
+                </div>
+                <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
+              </template>
+              <div v-else class="readonly-value amount">{{ formatAmount(formData.amount) }}</div>
             </div>
 
             <!-- Payroll Items -->
             <div class="form-field">
-              <label for="oneOffPayrollItem" class="field-label required">Payroll Items</label>
-              <Dropdown
-                id="oneOffPayrollItem"
-                :modelValue="formData.payrollAdditionalItem"
-                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-                :options="payrollAdditionalItemOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select payroll item"
-                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-                class="w-full"
-              />
-              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+              <label for="oneOffPayrollItem" class="field-label" :class="{ required: !readonly }">Payroll Items</label>
+              <template v-if="!readonly">
+                <Dropdown
+                  id="oneOffPayrollItem"
+                  :modelValue="formData.payrollAdditionalItem"
+                  @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                  :options="payrollAdditionalItemOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select payroll item"
+                  :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                  class="w-full"
+                />
+                <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+              </template>
+              <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
             </div>
           </div>
 
           <!-- One-Off Frequency Selection -->
           <div class="frequency-section">
             <label class="section-label">Payment Frequency</label>
-            <div class="frequency-selector">
-              <label
-                v-for="freq in oneOffFrequencyOptions"
-                :key="freq.value"
-                class="frequency-option"
-                :class="{ selected: formData.oneOffFrequency === freq.value }"
-              >
-                <input
-                  type="radio"
-                  :value="freq.value"
-                  :checked="formData.oneOffFrequency === freq.value"
-                  @change="emit('update', 'oneOffFrequency', freq.value)"
-                  class="hidden-radio"
-                />
-                <i :class="freq.icon" class="freq-icon"></i>
-                <div class="freq-content">
-                  <span class="freq-label">{{ freq.label }}</span>
-                  <span class="freq-desc">{{ freq.description }}</span>
-                </div>
-              </label>
-            </div>
+            <template v-if="!readonly">
+              <div class="frequency-selector">
+                <label
+                  v-for="freq in oneOffFrequencyOptions"
+                  :key="freq.value"
+                  class="frequency-option"
+                  :class="{ selected: formData.oneOffFrequency === freq.value }"
+                >
+                  <input
+                    type="radio"
+                    :value="freq.value"
+                    :checked="formData.oneOffFrequency === freq.value"
+                    @change="emit('update', 'oneOffFrequency', freq.value)"
+                    class="hidden-radio"
+                  />
+                  <i :class="freq.icon" class="freq-icon"></i>
+                  <div class="freq-content">
+                    <span class="freq-label">{{ freq.label }}</span>
+                    <span class="freq-desc">{{ freq.description }}</span>
+                  </div>
+                </label>
+              </div>
+            </template>
+            <div v-else class="readonly-value">{{ getFrequencyLabel(formData.oneOffFrequency) }}</div>
           </div>
 
         </template>
       </div>
     </div>
 
-    <!-- Type-Specific Options (hide for MONTHLY since it has no options) -->
-    <div v-if="formData.type && formData.type !== 'MONTHLY'" class="form-card">
+    <!-- Type-Specific Options (only for DAILY type) -->
+    <div v-if="formData.type === 'DAILY'" class="form-card">
       <div class="card-header">
         <h3 class="card-title">{{ getTypeLabel(formData.type) }} Options</h3>
       </div>
       <div class="card-body">
-        <!-- DAILY Options -->
-        <template v-if="formData.type === 'DAILY'">
-          <!-- Day Type Selection -->
-          <div class="daily-options-grid">
-            <!-- Apply On Day Type -->
-            <div class="option-section">
-              <label class="section-label">Apply on Day Type</label>
+        <!-- Day Type Selection -->
+        <div class="daily-options-grid">
+          <!-- Apply On Day Type -->
+          <div class="option-section">
+            <label class="section-label">Apply on Day Type</label>
+            <template v-if="!readonly">
               <div class="day-type-grid">
                 <label
                   class="day-type-item"
@@ -340,11 +382,23 @@
                   <span class="day-type-text">Holiday</span>
                 </label>
               </div>
+            </template>
+            <div v-else class="readonly-chips">
+              <span
+                v-for="dayType in getSelectedDayTypes()"
+                :key="dayType"
+                class="readonly-chip"
+              >
+                {{ dayType }}
+              </span>
+              <span v-if="getSelectedDayTypes().length === 0" class="readonly-empty">None selected</span>
             </div>
+          </div>
 
-            <!-- Apply On Shift -->
-            <div class="option-section">
-              <label class="section-label">Apply on Shift</label>
+          <!-- Apply On Shift -->
+          <div class="option-section">
+            <label class="section-label">Apply on Shift</label>
+            <template v-if="!readonly">
               <MultiSelect
                 :modelValue="formData.applyOnShifts"
                 @update:modelValue="emit('update', 'applyOnShifts', $event)"
@@ -355,11 +409,16 @@
                 display="chip"
                 class="w-full compact-select"
               />
+            </template>
+            <div v-else class="readonly-chips">
+              <span class="readonly-chip info">{{ getShiftLabels() }}</span>
             </div>
+          </div>
 
-            <!-- Apply On Work Location -->
-            <div class="option-section">
-              <label class="section-label">Apply on Work Location</label>
+          <!-- Apply On Work Location -->
+          <div class="option-section">
+            <label class="section-label">Apply on Work Location</label>
+            <template v-if="!readonly">
               <MultiSelect
                 :modelValue="formData.applyOnWorkLocations"
                 @update:modelValue="emit('update', 'applyOnWorkLocations', $event)"
@@ -370,41 +429,12 @@
                 display="chip"
                 class="w-full compact-select"
               />
+            </template>
+            <div v-else class="readonly-chips">
+              <span class="readonly-chip info">{{ getLocationLabels() }}</span>
             </div>
           </div>
-        </template>
-
-        <!-- ONE_OFF Options -->
-        <template v-if="formData.type === 'ONE_OFF'">
-          <div class="form-row">
-            <div class="form-field">
-              <label for="payoutDate" class="field-label">Payout Date</label>
-              <Calendar
-                id="payoutDate"
-                :modelValue="formData.payoutDate"
-                @update:modelValue="emit('update', 'payoutDate', $event)"
-                dateFormat="dd M yy"
-                showIcon
-                :class="{ 'p-invalid': errors.get('payoutDate') }"
-                class="w-full"
-              />
-              <small v-if="errors.get('payoutDate')" class="p-error">{{ errors.get('payoutDate') }}</small>
-            </div>
-
-            <div class="form-field">
-              <label for="payoutMonth" class="field-label">Or Payout Month</label>
-              <InputMask
-                id="payoutMonth"
-                :modelValue="formData.payoutMonth"
-                @update:modelValue="emit('update', 'payoutMonth', $event)"
-                mask="9999-99"
-                placeholder="YYYY-MM"
-                class="w-full"
-              />
-              <small class="field-hint">Either date or month required</small>
-            </div>
-          </div>
-        </template>
+        </div>
       </div>
     </div>
 
@@ -416,42 +446,48 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-field">
-            <label for="effectiveStart" class="field-label required">Start Date</label>
-            <Calendar
-              id="effectiveStart"
-              :modelValue="formData.effectiveStart"
-              @update:modelValue="emit('update', 'effectiveStart', $event)"
-              @blur="emit('blur', 'effectiveStart')"
-              dateFormat="dd M yy"
-              showIcon
-              :class="{ 'p-invalid': errors.get('effectiveStart') }"
-              class="w-full"
-            />
-            <small v-if="errors.get('effectiveStart')" class="p-error">{{ errors.get('effectiveStart') }}</small>
+            <label for="effectiveStart" class="field-label" :class="{ required: !readonly }">Start Date</label>
+            <template v-if="!readonly">
+              <Calendar
+                id="effectiveStart"
+                :modelValue="formData.effectiveStart"
+                @update:modelValue="emit('update', 'effectiveStart', $event)"
+                @blur="emit('blur', 'effectiveStart')"
+                dateFormat="dd M yy"
+                showIcon
+                :class="{ 'p-invalid': errors.get('effectiveStart') }"
+                class="w-full"
+              />
+              <small v-if="errors.get('effectiveStart')" class="p-error">{{ errors.get('effectiveStart') }}</small>
+            </template>
+            <div v-else class="readonly-value">{{ formatDate(formData.effectiveStart) }}</div>
           </div>
 
           <div class="form-field">
-            <label for="effectiveEnd" class="field-label">End Date <span class="optional-tag">Optional</span></label>
-            <Calendar
-              id="effectiveEnd"
-              :modelValue="formData.effectiveEnd"
-              @update:modelValue="emit('update', 'effectiveEnd', $event)"
-              @blur="emit('blur', 'effectiveEnd')"
-              dateFormat="dd M yy"
-              showIcon
-              :minDate="formData.effectiveStart || undefined"
-              :class="{ 'p-invalid': errors.get('effectiveEnd') }"
-              class="w-full"
-            />
-            <small v-if="errors.get('effectiveEnd')" class="p-error">{{ errors.get('effectiveEnd') }}</small>
-            <small v-else class="field-hint">Leave empty for ongoing allowance</small>
+            <label for="effectiveEnd" class="field-label">End Date <span v-if="!readonly" class="optional-tag">Optional</span></label>
+            <template v-if="!readonly">
+              <Calendar
+                id="effectiveEnd"
+                :modelValue="formData.effectiveEnd"
+                @update:modelValue="emit('update', 'effectiveEnd', $event)"
+                @blur="emit('blur', 'effectiveEnd')"
+                dateFormat="dd M yy"
+                showIcon
+                :minDate="formData.effectiveStart || undefined"
+                :class="{ 'p-invalid': errors.get('effectiveEnd') }"
+                class="w-full"
+              />
+              <small v-if="errors.get('effectiveEnd')" class="p-error">{{ errors.get('effectiveEnd') }}</small>
+              <small v-else class="field-hint">Leave empty for ongoing allowance</small>
+            </template>
+            <div v-else class="readonly-value">{{ formData.effectiveEnd ? formatDate(formData.effectiveEnd) : 'Ongoing' }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Condition Section (for DAILY and MONTHLY types) -->
-    <div v-if="formData.type === 'DAILY' || formData.type === 'MONTHLY'" class="form-card">
+    <!-- Condition Section (for DAILY, MONTHLY, and ONE_OFF types) -->
+    <div v-if="formData.type === 'DAILY' || formData.type === 'MONTHLY' || formData.type === 'ONE_OFF'" class="form-card">
       <div class="card-header">
         <h3 class="card-title">Condition</h3>
       </div>
@@ -459,6 +495,7 @@
         <AttendanceCriteriaBuilder
           :modelValue="formData.attendanceCriteria"
           @update:modelValue="emit('update', 'attendanceCriteria', $event)"
+          :readonly="readonly"
         />
       </div>
     </div>
@@ -474,10 +511,7 @@
 <script setup lang="ts">
 // PrimeVue Components
 import InputNumber from 'primevue/inputnumber';
-import InputMask from 'primevue/inputmask';
-import Textarea from 'primevue/textarea';
 import Dropdown from 'primevue/dropdown';
-import SelectButton from 'primevue/selectbutton';
 import Calendar from 'primevue/calendar';
 import Checkbox from 'primevue/checkbox';
 import MultiSelect from 'primevue/multiselect';
@@ -507,10 +541,12 @@ interface Props {
   formData: TemplateInfoFormData;
   errors: Map<string, string>;
   assignmentCount?: number;
+  readonly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  assignmentCount: 0
+  assignmentCount: 0,
+  readonly: false
 });
 
 const emit = defineEmits<{
@@ -549,6 +585,52 @@ function handleProrateToggle(value: boolean): void {
     emit('update', 'prorateByJoinDate', false);
     emit('update', 'prorateByLeaveDate', false);
   }
+}
+
+// Readonly helpers
+function getPayrollItemLabel(value: string): string {
+  return payrollAdditionalItemOptions.find(o => o.value === value)?.label || value || '-';
+}
+
+function getCalcModeLabel(mode: string): string {
+  return dailyCalculationModeOptions.find(o => o.value === mode)?.label || mode || '-';
+}
+
+function getFrequencyLabel(freq: string): string {
+  return oneOffFrequencyOptions.find(o => o.value === freq)?.label || freq || '-';
+}
+
+function formatAmount(amount: number | null): string {
+  if (amount === null || amount === undefined) return '-';
+  return `RM ${amount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDate(date: Date | null): string {
+  if (!date) return '-';
+  return date.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getSelectedDayTypes(): string[] {
+  const types: string[] = [];
+  if (props.formData.applyOnNormalWorkday) types.push('Normal Workday');
+  if (props.formData.applyOnRestday) types.push('Rest Day');
+  if (props.formData.applyOnOffday) types.push('Off Day');
+  if (props.formData.applyOnHoliday) types.push('Holiday');
+  return types;
+}
+
+function getShiftLabels(): string {
+  if (!props.formData.applyOnShifts?.length) return 'All shifts';
+  return props.formData.applyOnShifts.map(s =>
+    shiftOptions.find(o => o.value === s)?.label || s
+  ).join(', ');
+}
+
+function getLocationLabels(): string {
+  if (!props.formData.applyOnWorkLocations?.length) return 'All locations';
+  return props.formData.applyOnWorkLocations.map(l =>
+    workLocationOptions.find(o => o.value === l)?.label || l
+  ).join(', ');
 }
 
 </script>
@@ -791,9 +873,12 @@ function handleProrateToggle(value: boolean): void {
 }
 
 .section-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #374151;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
 }
 
 /* Day Type Grid */
@@ -1047,6 +1132,92 @@ function handleProrateToggle(value: boolean): void {
   font-size: 0.6875rem;
   color: #64748b;
   line-height: 1.3;
+}
+
+/* Readonly Value */
+.readonly-value {
+  font-size: 0.875rem;
+  color: #1e293b;
+  padding: 0.5rem 0;
+  min-height: 2.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.readonly-value.amount {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+.readonly-value.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #eff6ff;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  color: #1d4ed8;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.readonly-value.type-badge .type-icon-small {
+  color: #3b82f6;
+}
+
+/* Readonly Chips */
+.readonly-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.readonly-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #166534;
+}
+
+.readonly-chip.info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.readonly-empty {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Readonly Option Row */
+.readonly-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.readonly-option .option-label {
+  color: #64748b;
+}
+
+.readonly-option .option-value {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.readonly-option .option-detail {
+  color: #6366f1;
+  font-size: 0.75rem;
 }
 
 /* Responsive */

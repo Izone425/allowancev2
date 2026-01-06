@@ -41,8 +41,8 @@ export const allowanceRoutes: RouteRecordRaw[] = [
       {
         path: 'templates/:id',
         name: 'allowance-template-details',
-        component: () => import('../pages/AllowanceTemplateDetailsPage.vue'),
-        props: true,
+        component: () => import('../pages/AllowanceTemplateFormPage.vue'),
+        props: (route) => ({ id: route.params.id, mode: 'view' }),
         meta: {
           title: 'Allowance Template Details',
           breadcrumb: 'Details',

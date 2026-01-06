@@ -10,18 +10,25 @@
         />
         <div class="header-content">
           <h1 class="page-title">
-            {{ isEditMode ? 'Edit Allowance Template' : 'Create Allowance Template' }}
+            {{ pageTitle }}
           </h1>
           <p class="page-subtitle">
-            {{ isEditMode ? `Editing: ${formData.name || 'Untitled'}` : 'Configure a new allowance for your organization' }}
+            {{ pageSubtitle }}
           </p>
         </div>
       </div>
       <div class="header-right">
         <Tag
-          v-if="formData.status"
+          v-if="formData.status && !isViewMode"
           :value="formData.status"
           :severity="getStatusSeverity(formData.status)"
+        />
+        <Button
+          v-if="isViewMode && formData.status !== 'ARCHIVED'"
+          icon="pi pi-pencil"
+          class="edit-fab-button"
+          @click="switchToEditMode"
+          v-tooltip.left="'Edit Template'"
         />
       </div>
     </div>
@@ -67,6 +74,7 @@
           <div v-if="currentStep === 0">
             <!-- Copy From Template Section (only in create mode) -->
             <CopyFromTemplateSection
+              v-if="!isViewMode"
               ref="copyFromSectionRef"
               :templates="availableTemplates"
               :loading="loadingTemplates"
@@ -81,6 +89,7 @@
               :code-check-loading="codeCheckLoading"
               :code-check-result="codeCheckResult"
               :is-edit-mode="isEditMode"
+              :readonly="isViewMode"
               @update="handleFormUpdate"
               @blur="handleFieldBlur"
             />
@@ -89,6 +98,7 @@
             <TemplateInfoForm
               :form-data="formData"
               :errors="errors"
+              :readonly="isViewMode"
               @update="handleFormUpdate"
               @blur="handleFieldBlur"
             />
@@ -101,6 +111,7 @@
             :template-id="templateId"
             :criteria="criteriaData"
             :initial-selected-ids="selectedUserIds"
+            :readonly="isViewMode"
             @update="handleAssignmentUpdate"
           />
         </div>
@@ -119,24 +130,38 @@
             />
           </div>
           <div class="footer-right">
-            <Button
-              v-if="currentStep < steps.length - 1"
-              label="Next"
-              icon="pi pi-arrow-right"
-              iconPos="right"
-              class="p-button-primary"
-              :disabled="!isCurrentStepValid"
-              @click="goToNextStep"
-            />
-            <Button
-              v-else
-              label="Save"
-              icon="pi pi-check"
-              class="p-button-success"
-              :loading="saving"
-              :disabled="!isFormValid"
-              @click="handleSaveAndActivate"
-            />
+            <!-- View mode: only show navigation buttons -->
+            <template v-if="isViewMode">
+              <Button
+                v-if="currentStep < steps.length - 1"
+                label="Next"
+                icon="pi pi-arrow-right"
+                iconPos="right"
+                class="p-button-primary"
+                @click="goToNextStep"
+              />
+            </template>
+            <!-- Edit/Create mode: show validation and save buttons -->
+            <template v-else>
+              <Button
+                v-if="currentStep < steps.length - 1"
+                label="Next"
+                icon="pi pi-arrow-right"
+                iconPos="right"
+                class="p-button-primary"
+                :disabled="!isCurrentStepValid"
+                @click="goToNextStep"
+              />
+              <Button
+                v-else
+                label="Save"
+                icon="pi pi-check"
+                class="p-button-success"
+                :loading="saving"
+                :disabled="!isFormValid"
+                @click="handleSaveAndActivate"
+              />
+            </template>
           </div>
         </div>
       </template>
@@ -211,6 +236,7 @@ import { CriteriaGroupOperator, DailyCalculationMode, AllowanceStatus, OneOffFre
 
 const props = defineProps<{
   id?: string;
+  mode?: 'view' | 'edit' | 'create';
 }>();
 
 // ---------------------------------------------------------------------------
@@ -246,8 +272,23 @@ const steps = WIZARD_STEPS;
 
 // Template data
 const templateId = computed(() => props.id || (route.params.id as string) || null);
-const isEditMode = computed(() => !!templateId.value);
+const isViewMode = computed(() => props.mode === 'view' || route.query.mode === 'view');
+const isEditMode = computed(() => !!templateId.value && !isViewMode.value);
+const isCreateMode = computed(() => !templateId.value);
 const loadingTemplate = ref(false);
+
+// Page title and subtitle based on mode
+const pageTitle = computed(() => {
+  if (isViewMode.value) return formData.value.name || 'Allowance Template';
+  if (isEditMode.value) return 'Edit Allowance Template';
+  return 'Create Allowance Template';
+});
+
+const pageSubtitle = computed(() => {
+  if (isViewMode.value) return formData.value.code || '';
+  if (isEditMode.value) return formData.value.name || 'Untitled';
+  return 'Configure a new allowance for your organization';
+});
 
 // Criteria state
 const criteriaData = ref<CriteriaSet>({
@@ -293,7 +334,8 @@ const isFormValid = computed(() => {
   return result.isValid;
 });
 
-const hasUnsavedChanges = computed(() => isDirty.value);
+// In view mode, there are no unsaved changes since nothing can be edited
+const hasUnsavedChanges = computed(() => !isViewMode.value && isDirty.value);
 
 // ---------------------------------------------------------------------------
 // METHODS - Navigation
@@ -340,6 +382,12 @@ function handleBack(): void {
     showUnsavedDialog.value = true;
   } else {
     router.push({ name: 'allowance-templates' });
+  }
+}
+
+function switchToEditMode(): void {
+  if (templateId.value) {
+    router.push({ name: 'allowance-template-edit', params: { id: templateId.value } });
   }
 }
 
@@ -648,7 +696,8 @@ function getStatusSeverity(status: AllowanceStatus): string {
 // ---------------------------------------------------------------------------
 
 onMounted(() => {
-  if (isEditMode.value) {
+  if (isEditMode.value || isViewMode.value) {
+    // Load template data for both edit and view modes
     loadTemplate();
   } else {
     // Load available templates for copy dropdown (only in create mode)
@@ -708,6 +757,35 @@ onBeforeRouteLeave((to, from, next) => {
   font-size: 0.8125rem;
   color: #64748b;
   margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Floating Edit Button */
+.edit-fab-button {
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.edit-fab-button:hover {
+  background-color: #e2e8f0 !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.edit-fab-button .pi {
+  font-size: 0.875rem;
 }
 
 /* Loading */

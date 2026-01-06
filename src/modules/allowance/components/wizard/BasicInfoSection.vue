@@ -8,8 +8,9 @@
         <div class="form-row">
           <!-- Name -->
           <div class="form-field">
-            <label for="name" class="field-label required">Allowance Name</label>
+            <label for="name" class="field-label" :class="{ required: !readonly, 'readonly-label': readonly }">Allowance Name</label>
             <InputText
+              v-if="!readonly"
               id="name"
               :modelValue="formData.name"
               @update:modelValue="emit('update', 'name', $event)"
@@ -18,13 +19,14 @@
               :class="{ 'p-invalid': errors.get('name') }"
               class="w-full"
             />
-            <small v-if="errors.get('name')" class="p-error">{{ errors.get('name') }}</small>
+            <div v-else class="readonly-value name">{{ formData.name || '-' }}</div>
+            <small v-if="!readonly && errors.get('name')" class="p-error">{{ errors.get('name') }}</small>
           </div>
 
           <!-- Code -->
           <div class="form-field">
-            <label for="code" class="field-label required">Allowance Code</label>
-            <div class="code-input-wrapper">
+            <label for="code" class="field-label" :class="{ required: !readonly, 'readonly-label': readonly }">Allowance Code</label>
+            <div v-if="!readonly" class="code-input-wrapper">
               <InputText
                 id="code"
                 :modelValue="formData.code"
@@ -41,19 +43,21 @@
                 <i v-else-if="codeCheckResult === false" class="pi pi-times-circle status-icon invalid"></i>
               </div>
             </div>
-            <small v-if="errors.get('code')" class="p-error">{{ errors.get('code') }}</small>
-            <small v-else class="field-hint">Unique identifier for this allowance</small>
+            <div v-else class="readonly-value code">{{ formData.code || '-' }}</div>
+            <small v-if="!readonly && errors.get('code')" class="p-error">{{ errors.get('code') }}</small>
+            <small v-else-if="!readonly" class="field-hint">Unique identifier for this allowance</small>
           </div>
         </div>
 
         <!-- Description -->
         <div class="form-row">
           <div class="form-field full-width">
-            <label for="description" class="field-label">
+            <label for="description" class="field-label" :class="{ 'readonly-label': readonly }">
               Description
-              <span class="optional-tag">Optional</span>
+              <span v-if="!readonly" class="optional-tag">Optional</span>
             </label>
             <Textarea
+              v-if="!readonly"
               id="description"
               :modelValue="formData.description"
               @update:modelValue="emit('update', 'description', $event)"
@@ -61,6 +65,7 @@
               rows="2"
               class="w-full"
             />
+            <div v-else class="readonly-value description">{{ formData.description || '-' }}</div>
           </div>
         </div>
       </div>
@@ -85,6 +90,7 @@ interface Props {
   codeCheckLoading: boolean;
   codeCheckResult: boolean | null;
   isEditMode: boolean;
+  readonly?: boolean;
 }
 
 defineProps<Props>();
@@ -215,6 +221,56 @@ function handleCodeChange(value: string): void {
 
 .status-icon.invalid {
   color: #ef4444;
+}
+
+/* Readonly Label */
+.readonly-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Readonly Value */
+.readonly-value {
+  font-size: 0.875rem;
+  color: #1e293b;
+  padding: 0.375rem 0;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+}
+
+.readonly-value.name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.readonly-value.code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6366f1;
+  background: #f1f5f9;
+  padding: 0.375rem 0.625rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.readonly-value.description {
+  font-size: 0.875rem;
+  color: #475569;
+  background: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  line-height: 1.5;
 }
 
 /* Responsive */
