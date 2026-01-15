@@ -318,6 +318,22 @@ export const ATTENDANCE_CRITERIA_FIELD_OPTIONS = [
   {
     value: AttendanceCriteriaField.OVERTIME_TIME,
     label: 'Overtime Starts & Overtime Ends'
+  },
+  {
+    value: AttendanceCriteriaField.YEAR_OF_SERVICE,
+    label: 'Year of Service'
+  },
+  {
+    value: AttendanceCriteriaField.EMPLOYMENT_STATUS,
+    label: 'Employment Status'
+  },
+  {
+    value: AttendanceCriteriaField.JOB_GRADE,
+    label: 'Job Grade'
+  },
+  {
+    value: AttendanceCriteriaField.PERFORMANCE_RATING,
+    label: 'Performance Rating'
   }
 ] as const;
 
@@ -389,13 +405,13 @@ export const ONE_OFF_FREQUENCY_OPTIONS = [
   {
     value: OneOffFrequency.YEARLY,
     label: 'Yearly',
-    description: 'Paid once every year (e.g., Annual Bonus, Hari Raya Bonus)',
+    description: 'Paid once every year',
     icon: 'pi pi-calendar'
   },
   {
     value: OneOffFrequency.ENTIRE_SERVICE,
     label: 'Entire Year of Service',
-    description: 'Paid once in entire employment (e.g., Long Service Award)',
+    description: 'Paid once in entire employment',
     icon: 'pi pi-star'
   }
 ] as const;
@@ -420,6 +436,46 @@ export const SERVICE_MILESTONE_OPTIONS = [
   { value: 20, label: '20 Years' },
   { value: 25, label: '25 Years' },
   { value: 30, label: '30 Years' }
+] as const;
+
+// -----------------------------------------------------------------------------
+// EMPLOYMENT STATUS OPTIONS (for One-Off criteria)
+// -----------------------------------------------------------------------------
+
+export const EMPLOYMENT_STATUS_OPTIONS = [
+  { value: 'CONFIRMED', label: 'Confirmed' },
+  { value: 'PROBATION', label: 'Probation' },
+  { value: 'CONTRACT', label: 'Contract' },
+  { value: 'PERMANENT', label: 'Permanent' },
+  { value: 'TEMPORARY', label: 'Temporary' }
+] as const;
+
+// -----------------------------------------------------------------------------
+// JOB GRADE OPTIONS (for One-Off criteria)
+// -----------------------------------------------------------------------------
+
+export const JOB_GRADE_OPTIONS = [
+  { value: 'EXECUTIVE', label: 'Executive' },
+  { value: 'SENIOR_EXECUTIVE', label: 'Senior Executive' },
+  { value: 'ASSISTANT_MANAGER', label: 'Assistant Manager' },
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'SENIOR_MANAGER', label: 'Senior Manager' },
+  { value: 'GENERAL_MANAGER', label: 'General Manager' },
+  { value: 'DIRECTOR', label: 'Director' },
+  { value: 'VP', label: 'Vice President' },
+  { value: 'C_LEVEL', label: 'C-Level' }
+] as const;
+
+// -----------------------------------------------------------------------------
+// PERFORMANCE RATING OPTIONS (for One-Off criteria)
+// -----------------------------------------------------------------------------
+
+export const PERFORMANCE_RATING_OPTIONS = [
+  { value: 'A', label: 'A - Excellent' },
+  { value: 'B', label: 'B - Good' },
+  { value: 'C', label: 'C - Satisfactory' },
+  { value: 'D', label: 'D - Needs Improvement' },
+  { value: 'E', label: 'E - Unsatisfactory' }
 ] as const;
 
 // -----------------------------------------------------------------------------

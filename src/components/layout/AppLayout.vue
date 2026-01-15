@@ -26,9 +26,13 @@
 
         <div class="nav-section">
           <div class="nav-section-title">Payroll</div>
-          <router-link to="/hrms/allowances/templates" class="nav-item active" v-tooltip.right="sidebarCollapsed ? 'Allowances' : ''">
+          <router-link to="/hrms/allowances/templates" class="nav-item" v-tooltip.right="sidebarCollapsed ? 'Allowances' : ''">
             <i class="pi pi-wallet"></i>
             <span class="nav-label">Allowances</span>
+          </router-link>
+          <router-link to="/hrms/allowances/reports" class="nav-item" v-tooltip.right="sidebarCollapsed ? 'Reports' : ''">
+            <i class="pi pi-file-export"></i>
+            <span class="nav-label">Reports</span>
           </router-link>
           <a href="#" class="nav-item" v-tooltip.right="sidebarCollapsed ? 'Deductions' : ''">
             <i class="pi pi-minus-circle"></i>
@@ -527,6 +531,9 @@ onUnmounted(() => {
 .main-content {
   flex: 1;
   padding: 1.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Mobile Overlay */

@@ -8,6 +8,7 @@
         </span>
       </div>
       <Button
+        v-if="!readonly"
         label="Add Condition"
         icon="pi pi-plus"
         size="small"
@@ -22,7 +23,7 @@
         <!-- Group Operator (between groups) -->
         <div v-if="groupIndex > 0" class="group-operator-row">
           <div class="operator-line"></div>
-          <div class="operator-switch" @click="toggleGroupOperator">
+          <div class="operator-switch" :class="{ disabled: readonly }" @click="!readonly && toggleGroupOperator()">
             <span class="switch-option" :class="{ active: modelValue.groupOperator === 'AND' }">AND</span>
             <span class="switch-option" :class="{ active: modelValue.groupOperator === 'OR' }">OR</span>
             <span class="switch-slider" :class="{ 'is-or': modelValue.groupOperator === 'OR' }"></span>
@@ -38,6 +39,7 @@
               <span class="badge-number">{{ groupIndex + 1 }}</span>
             </div>
             <button
+              v-if="!readonly"
               class="badge-remove"
               @click="removeGroup(groupIndex)"
               title="Remove group"
@@ -51,7 +53,7 @@
             <template v-for="(rule, ruleIndex) in group.rules" :key="rule.id">
               <!-- Rule Operator (within group) -->
               <div v-if="ruleIndex > 0" class="rule-operator-row">
-                <div class="operator-switch small" @click="toggleRuleOperator(groupIndex)">
+                <div class="operator-switch small" :class="{ disabled: readonly }" @click="!readonly && toggleRuleOperator(groupIndex)">
                   <span class="switch-option" :class="{ active: group.operator === 'AND' }">AND</span>
                   <span class="switch-option" :class="{ active: group.operator === 'OR' }">OR</span>
                   <span class="switch-slider" :class="{ 'is-or': group.operator === 'OR' }"></span>
@@ -72,6 +74,7 @@
                       optionValue="value"
                       placeholder="Select field"
                       class="custom-dropdown"
+                      :disabled="readonly"
                     />
                   </div>
 
@@ -87,11 +90,12 @@
                       placeholder="All Leave Types"
                       class="custom-dropdown leave-type-dropdown"
                       showClear
+                      :disabled="readonly"
                     />
                   </div>
 
-                  <!-- Operator Dropdown (hidden for time range fields) -->
-                  <div v-if="!isTimeRangeField(rule.field)" class="field-group operator-select">
+                  <!-- Operator Dropdown (hidden for time range and selection fields) -->
+                  <div v-if="!isTimeRangeField(rule.field) && !isSelectionField(rule.field)" class="field-group operator-select">
                     <label class="field-label">Operator</label>
                     <Dropdown
                       :modelValue="rule.condition"
@@ -101,7 +105,14 @@
                       optionValue="value"
                       placeholder="Op"
                       class="custom-dropdown operator-dropdown"
+                      :disabled="readonly"
                     />
+                  </div>
+
+                  <!-- Selection fields show "is one of" label instead of operator -->
+                  <div v-else-if="isSelectionField(rule.field)" class="field-group operator-label">
+                    <label class="field-label">Operator</label>
+                    <div class="operator-static">is one of</div>
                   </div>
 
                   <!-- Days Value (TOTAL_WORKING_DAYS) -->
@@ -115,8 +126,26 @@
                         :max="31"
                         class="simple-number"
                         :inputClass="'simple-input-field'"
+                        :disabled="readonly"
                       />
                       <span class="value-unit">days</span>
+                    </div>
+                  </div>
+
+                  <!-- Years Value (YEAR_OF_SERVICE) -->
+                  <div v-else-if="isYearsField(rule.field)" class="field-group value-input-simple">
+                    <label class="field-label">Value</label>
+                    <div class="simple-value-group">
+                      <InputNumber
+                        :modelValue="getSimpleTimeValue(rule.value).hours"
+                        @update:modelValue="(val) => updateRuleValue(groupIndex, ruleIndex, 'hours', val ?? 0)"
+                        :min="0"
+                        :max="50"
+                        class="simple-number"
+                        :inputClass="'simple-input-field'"
+                        :disabled="readonly"
+                      />
+                      <span class="value-unit">years</span>
                     </div>
                   </div>
 
@@ -131,6 +160,7 @@
                         :max="999"
                         class="simple-number"
                         :inputClass="'simple-input-field'"
+                        :disabled="readonly"
                       />
                       <span class="value-unit">times</span>
                     </div>
@@ -147,6 +177,7 @@
                         :max="999"
                         class="simple-number"
                         :inputClass="'simple-input-field'"
+                        :disabled="readonly"
                       />
                       <span class="value-unit">times</span>
                     </div>
@@ -163,9 +194,26 @@
                         :max="9999"
                         class="simple-number"
                         :inputClass="'simple-input-field'"
+                        :disabled="readonly"
                       />
                       <span class="value-unit">minutes</span>
                     </div>
+                  </div>
+
+                  <!-- Selection Value (Employment Status, Job Grade, Performance Rating) -->
+                  <div v-else-if="isSelectionField(rule.field)" class="field-group value-input-selection">
+                    <label class="field-label">Value</label>
+                    <MultiSelect
+                      :modelValue="getSelectionValue(rule.value).selectedValues"
+                      @update:modelValue="(val) => updateSelectionValue(groupIndex, ruleIndex, val ?? [])"
+                      :options="getSelectionOptions(rule.field)"
+                      optionLabel="label"
+                      optionValue="value"
+                      :placeholder="getSelectionPlaceholder(rule.field)"
+                      display="chip"
+                      class="selection-multiselect"
+                      :disabled="readonly"
+                    />
                   </div>
 
                   <!-- Time Duration Value (hours:minutes for regular fields) -->
@@ -180,6 +228,7 @@
                           :max="99"
                           class="time-number"
                           :inputClass="'time-input-field'"
+                          :disabled="readonly"
                         />
                         <span class="time-label">hrs</span>
                       </div>
@@ -192,6 +241,7 @@
                           :max="59"
                           class="time-number"
                           :inputClass="'time-input-field'"
+                          :disabled="readonly"
                         />
                         <span class="time-label">min</span>
                       </div>
@@ -214,6 +264,7 @@
                             class="time-input-24h"
                             placeholder="00:00"
                             maxlength="5"
+                            :disabled="readonly"
                           />
                         </div>
                       </div>
@@ -230,6 +281,7 @@
                             class="time-input-24h"
                             placeholder="00:00"
                             maxlength="5"
+                            :disabled="readonly"
                           />
                         </div>
                       </div>
@@ -237,8 +289,8 @@
                   </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="rule-actions">
+                <!-- Actions (hidden in readonly mode) -->
+                <div v-if="!readonly" class="rule-actions">
                   <button
                     class="action-btn add-rule-btn"
                     @click="addRule(groupIndex)"
@@ -268,7 +320,8 @@
         <i class="pi pi-filter"></i>
       </div>
       <p class="empty-title">No conditions defined</p>
-      <p class="empty-desc">Click "Add Condition" to create attendance-based rules</p>
+      <p v-if="!readonly" class="empty-desc">Click "Add Condition" to create attendance-based rules</p>
+      <p v-else class="empty-desc">This allowance has no attendance-based conditions</p>
     </div>
   </div>
 </template>
@@ -279,6 +332,7 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
+import MultiSelect from 'primevue/multiselect';
 // Types
 import type {
   AttendanceCriteriaSet,
@@ -288,14 +342,18 @@ import type {
   AttendanceCriteriaCondition,
   AttendanceTimeValue,
   AttendanceTimeRangeValue,
-  AttendanceLeaveValue
+  AttendanceLeaveValue,
+  AttendanceSelectionValue
 } from '../../types';
 import { CriteriaGroupOperator, AttendanceCriteriaField as AttendanceFieldEnum } from '../../types';
 // Constants
 import {
   ATTENDANCE_CRITERIA_FIELD_OPTIONS,
   ATTENDANCE_CRITERIA_CONDITION_OPTIONS,
-  LEAVE_TYPE_OPTIONS
+  LEAVE_TYPE_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS,
+  JOB_GRADE_OPTIONS,
+  PERFORMANCE_RATING_OPTIONS
 } from '../../constants';
 
 // ---------------------------------------------------------------------------
@@ -304,9 +362,12 @@ import {
 
 interface Props {
   modelValue: AttendanceCriteriaSet;
+  readonly?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  readonly: false
+});
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: AttendanceCriteriaSet): void;
@@ -319,6 +380,9 @@ const emit = defineEmits<{
 const criteriaFieldOptions = ATTENDANCE_CRITERIA_FIELD_OPTIONS;
 const conditionOptions = ATTENDANCE_CRITERIA_CONDITION_OPTIONS;
 const leaveTypeOptions = LEAVE_TYPE_OPTIONS;
+const employmentStatusOptions = EMPLOYMENT_STATUS_OPTIONS;
+const jobGradeOptions = JOB_GRADE_OPTIONS;
+const performanceRatingOptions = PERFORMANCE_RATING_OPTIONS;
 
 const groupColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
 
@@ -343,13 +407,18 @@ function getGroupColor(index: number): string {
 }
 
 // Type guards for time values
-function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceTimeRangeValue {
+function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceTimeRangeValue {
   return 'startTime' in value && 'endTime' in value;
 }
 
 // Type guard for leave values
-function isLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceLeaveValue {
+function isLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceLeaveValue {
   return 'count' in value && 'leaveType' in value;
+}
+
+// Type guard for selection values
+function isSelectionValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceSelectionValue {
+  return 'selectedValues' in value;
 }
 
 // Check if field uses time range input (start & end)
@@ -371,6 +440,11 @@ function isDaysField(field: AttendanceCriteriaField): boolean {
   return field === AttendanceFieldEnum.TOTAL_WORKING_DAYS;
 }
 
+// Check if field is a years count field (shows "years")
+function isYearsField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.YEAR_OF_SERVICE;
+}
+
 // Check if field is a leave field (has leave type selection)
 function isLeaveField(field: AttendanceCriteriaField): boolean {
   return field === AttendanceFieldEnum.LEAVE_TIMES;
@@ -382,6 +456,41 @@ function isMinutesOnlyField(field: AttendanceCriteriaField): boolean {
          field === AttendanceFieldEnum.EARLY_OUT_MINUTES ||
          field === AttendanceFieldEnum.EXTENDED_BREAK_MINUTES ||
          field === AttendanceFieldEnum.SHORT_HOURS_MINUTES;
+}
+
+// Check if field is a selection-based field (dropdown/multiselect)
+function isSelectionField(field: AttendanceCriteriaField): boolean {
+  return field === AttendanceFieldEnum.EMPLOYMENT_STATUS ||
+         field === AttendanceFieldEnum.JOB_GRADE ||
+         field === AttendanceFieldEnum.PERFORMANCE_RATING;
+}
+
+// Get selection options for a field
+function getSelectionOptions(field: AttendanceCriteriaField) {
+  switch (field) {
+    case AttendanceFieldEnum.EMPLOYMENT_STATUS:
+      return employmentStatusOptions;
+    case AttendanceFieldEnum.JOB_GRADE:
+      return jobGradeOptions;
+    case AttendanceFieldEnum.PERFORMANCE_RATING:
+      return performanceRatingOptions;
+    default:
+      return [];
+  }
+}
+
+// Get placeholder text for selection field
+function getSelectionPlaceholder(field: AttendanceCriteriaField): string {
+  switch (field) {
+    case AttendanceFieldEnum.EMPLOYMENT_STATUS:
+      return 'Select status';
+    case AttendanceFieldEnum.JOB_GRADE:
+      return 'Select grade';
+    case AttendanceFieldEnum.PERFORMANCE_RATING:
+      return 'Select rating';
+    default:
+      return 'Select';
+  }
 }
 
 // Get label for time range fields
@@ -411,6 +520,19 @@ function getLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | A
 // Create default leave value
 function createDefaultLeaveValue(): AttendanceLeaveValue {
   return { count: 0, leaveType: '' };
+}
+
+// Get selection value (for Employment Status, Job Grade, Performance Rating)
+function getSelectionValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): AttendanceSelectionValue {
+  if (isSelectionValue(value)) {
+    return value;
+  }
+  return { selectedValues: [] };
+}
+
+// Create default selection value
+function createDefaultSelectionValue(): AttendanceSelectionValue {
+  return { selectedValues: [] };
 }
 
 // Get time range value (for WORKING_TIME field)
@@ -601,6 +723,8 @@ function updateRule(
     const wasTimeRange = isTimeRangeField(currentRule.field);
     const isNewLeave = isLeaveField(newField);
     const wasLeave = isLeaveField(currentRule.field);
+    const isNewSelection = isSelectionField(newField);
+    const wasSelection = isSelectionField(currentRule.field);
 
     // Reset value when switching between different field types
     if (isNewTimeRange && !wasTimeRange) {
@@ -615,7 +739,13 @@ function updateRule(
         field: newField,
         value: createDefaultLeaveValue()
       };
-    } else if (!isNewTimeRange && !isNewLeave && (wasTimeRange || wasLeave)) {
+    } else if (isNewSelection && !wasSelection) {
+      newRules[ruleIndex] = {
+        ...currentRule,
+        field: newField,
+        value: createDefaultSelectionValue()
+      };
+    } else if (!isNewTimeRange && !isNewLeave && !isNewSelection && (wasTimeRange || wasLeave || wasSelection)) {
       newRules[ruleIndex] = {
         ...currentRule,
         field: newField,
@@ -688,6 +818,21 @@ function updateLeaveValue(
       ...currentValue,
       [field]: value
     }
+  };
+  newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
+  emit('update:modelValue', { ...props.modelValue, groups: newGroups });
+}
+
+function updateSelectionValue(
+  groupIndex: number,
+  ruleIndex: number,
+  selectedValues: string[]
+): void {
+  const newGroups = [...props.modelValue.groups];
+  const newRules = [...newGroups[groupIndex].rules];
+  newRules[ruleIndex] = {
+    ...newRules[ruleIndex],
+    value: { selectedValues }
   };
   newGroups[groupIndex] = { ...newGroups[groupIndex], rules: newRules };
   emit('update:modelValue', { ...props.modelValue, groups: newGroups });
@@ -805,6 +950,11 @@ function updateLeaveValue(
   transform: translateX(100%);
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+}
+
+.operator-switch.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .operator-switch.small {
@@ -1218,6 +1368,62 @@ function updateLeaveValue(
   font-size: 0.75rem;
   font-weight: 500;
   color: #64748b;
+}
+
+/* Selection Field Styles */
+.value-input-selection {
+  min-width: 200px;
+  flex: 1;
+}
+
+.selection-multiselect :deep(.p-multiselect) {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-height: 34px;
+  width: 100%;
+}
+
+.selection-multiselect :deep(.p-multiselect:hover) {
+  border-color: #cbd5e1;
+}
+
+.selection-multiselect :deep(.p-multiselect.p-focus) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.selection-multiselect :deep(.p-multiselect-label) {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.selection-multiselect :deep(.p-multiselect-token) {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+}
+
+/* Operator Static Label (for selection fields) */
+.operator-label {
+  min-width: 80px;
+}
+
+.operator-static {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Leave Type Selection Group */

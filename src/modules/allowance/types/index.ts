@@ -98,7 +98,12 @@ export enum AttendanceCriteriaField {
   ABSENT_TIMES = 'ABSENT_TIMES',                     // Number of absent days
   LEAVE_TIMES = 'LEAVE_TIMES',                       // Number of leave days
   WORKING_TIME = 'WORKING_TIME',        // Combined start & end time range
-  OVERTIME_TIME = 'OVERTIME_TIME'       // Overtime start & end time range
+  OVERTIME_TIME = 'OVERTIME_TIME',      // Overtime start & end time range
+  YEAR_OF_SERVICE = 'YEAR_OF_SERVICE',  // Employee's years of service
+  // Employment-based criteria (for One-Off)
+  EMPLOYMENT_STATUS = 'EMPLOYMENT_STATUS',    // Confirmed, Probation, Contract
+  JOB_GRADE = 'JOB_GRADE',                    // Job grade/level
+  PERFORMANCE_RATING = 'PERFORMANCE_RATING'   // Performance rating (A, B, C, D, E)
 }
 
 export enum AttendanceCriteriaCondition {
@@ -252,11 +257,16 @@ export interface AttendanceLeaveValue {
   leaveType: string;       // Selected leave type ID (empty string = all leave types)
 }
 
+// Selection-based value (for Employment Status, Job Grade, Performance Rating)
+export interface AttendanceSelectionValue {
+  selectedValues: string[];  // Array of selected option values
+}
+
 export interface AttendanceCriteriaRule {
   id: string;
   field: AttendanceCriteriaField;
   condition: AttendanceCriteriaCondition;
-  value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue;  // TimeRange for WORKING_TIME field, LeaveValue for LEAVE_TIMES
+  value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue;  // TimeRange for WORKING_TIME field, LeaveValue for LEAVE_TIMES, SelectionValue for dropdown fields
 }
 
 export interface AttendanceCriteriaGroup {

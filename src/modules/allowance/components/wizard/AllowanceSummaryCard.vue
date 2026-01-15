@@ -52,10 +52,10 @@
         </ul>
       </div>
 
-      <!-- No conditions message (Daily and Monthly) -->
-      <p v-else-if="formData.type === 'DAILY' || formData.type === 'MONTHLY'" class="summary-line summary-info">
+      <!-- No conditions message (Daily, Monthly, and One-Off) -->
+      <p v-else-if="formData.type === 'DAILY' || formData.type === 'MONTHLY' || formData.type === 'ONE_OFF'" class="summary-line summary-info">
         <i class="pi pi-info-circle"></i>
-        <span>No conditions - applies to all eligible {{ formData.type === 'DAILY' ? 'days' : 'months' }}</span>
+        <span>No conditions - applies to all eligible {{ formData.type === 'DAILY' ? 'days' : formData.type === 'MONTHLY' ? 'months' : 'employees' }}</span>
       </p>
 
       <!-- Monthly prorate info -->
@@ -84,7 +84,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TemplateInfoFormData, AttendanceCriteriaRule, AttendanceTimeValue, AttendanceTimeRangeValue, AttendanceLeaveValue } from '../../types';
+import type { TemplateInfoFormData, AttendanceCriteriaRule, AttendanceTimeValue, AttendanceTimeRangeValue, AttendanceLeaveValue, AttendanceSelectionValue } from '../../types';
 import { DailyCalculationMode, AttendanceCriteriaField } from '../../types';
 import {
   CURRENCY_OPTIONS,
@@ -93,7 +93,10 @@ import {
   WORK_LOCATION_OPTIONS,
   ATTENDANCE_CRITERIA_FIELD_OPTIONS,
   ATTENDANCE_CRITERIA_CONDITION_OPTIONS,
-  LEAVE_TYPE_OPTIONS
+  LEAVE_TYPE_OPTIONS,
+  EMPLOYMENT_STATUS_OPTIONS,
+  JOB_GRADE_OPTIONS,
+  PERFORMANCE_RATING_OPTIONS
 } from '../../constants';
 
 // ---------------------------------------------------------------------------
@@ -156,6 +159,10 @@ function getLaymanFieldDescription(field: AttendanceCriteriaField): { subject: s
     'LEAVE_TIMES': { subject: 'Employee', verb: 'takes leave' },
     'WORKING_TIME': { subject: 'Employee', verb: 'works during' },
     'OVERTIME_TIME': { subject: 'Employee', verb: 'does overtime during' },
+    'YEAR_OF_SERVICE': { subject: 'Employee', verb: 'has served' },
+    'EMPLOYMENT_STATUS': { subject: 'Employee', verb: 'has status' },
+    'JOB_GRADE': { subject: 'Employee', verb: 'is at grade' },
+    'PERFORMANCE_RATING': { subject: 'Employee', verb: 'has rating' },
   };
   return fieldMap[field] || { subject: 'Employee', verb: 'has' };
 }
@@ -178,17 +185,41 @@ function getLeaveTypeLabel(leaveType: string): string {
   return LEAVE_TYPE_OPTIONS.find(l => l.value === leaveType)?.label || leaveType;
 }
 
+function getSelectionLabels(field: AttendanceCriteriaField, values: string[]): string {
+  if (!values || values.length === 0) return 'none selected';
+
+  let options: readonly { value: string; label: string }[] = [];
+  switch (field) {
+    case AttendanceCriteriaField.EMPLOYMENT_STATUS:
+      options = EMPLOYMENT_STATUS_OPTIONS;
+      break;
+    case AttendanceCriteriaField.JOB_GRADE:
+      options = JOB_GRADE_OPTIONS;
+      break;
+    case AttendanceCriteriaField.PERFORMANCE_RATING:
+      options = PERFORMANCE_RATING_OPTIONS;
+      break;
+  }
+
+  const labels = values.map(v => options.find(o => o.value === v)?.label || v);
+  return labels.join(', ');
+}
+
 // Type guards
-function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceTimeRangeValue {
+function isTimeRangeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceTimeRangeValue {
   return 'startTime' in value && 'endTime' in value;
 }
 
-function isLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceLeaveValue {
+function isLeaveValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceLeaveValue {
   return 'count' in value && 'leaveType' in value;
 }
 
-function isTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue): value is AttendanceTimeValue {
-  return 'hours' in value && 'minutes' in value && !('startTime' in value) && !('count' in value);
+function isSelectionValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceSelectionValue {
+  return 'selectedValues' in value;
+}
+
+function isTimeValue(value: AttendanceTimeValue | AttendanceTimeRangeValue | AttendanceLeaveValue | AttendanceSelectionValue): value is AttendanceTimeValue {
+  return 'hours' in value && 'minutes' in value && !('startTime' in value) && !('count' in value) && !('selectedValues' in value);
 }
 
 // ---------------------------------------------------------------------------
@@ -338,11 +369,11 @@ const shiftsSentence = computed(() => shiftsInfo.value.text);
 const locationsSentence = computed(() => locationsInfo.value.text);
 
 // ---------------------------------------------------------------------------
-// COMPUTED - Conditions (Daily and Monthly)
+// COMPUTED - Conditions (Daily, Monthly, and One-Off)
 // ---------------------------------------------------------------------------
 
 const hasConditions = computed(() => {
-  if (props.formData.type !== 'DAILY' && props.formData.type !== 'MONTHLY') return false;
+  if (props.formData.type !== 'DAILY' && props.formData.type !== 'MONTHLY' && props.formData.type !== 'ONE_OFF') return false;
   const criteria = props.formData.attendanceCriteria;
   if (!criteria?.groups?.length) return false;
   return criteria.groups.some(g => g.rules?.length > 0);
@@ -386,6 +417,25 @@ function formatRuleToSentence(rule: AttendanceCriteriaRule): string {
       const days = rule.value.hours; // days stored in hours field
       const dayWord = days === 1 ? 'day' : 'days';
       return `${subject} ${verb} ${condition} ${days} ${dayWord}`;
+    }
+  }
+
+  // Handle Year of Service field (shows years count)
+  if (rule.field === AttendanceCriteriaField.YEAR_OF_SERVICE) {
+    if (isTimeValue(rule.value)) {
+      const years = rule.value.hours; // years stored in hours field
+      const yearWord = years === 1 ? 'year' : 'years';
+      return `${subject} ${verb} ${condition} ${years} ${yearWord}`;
+    }
+  }
+
+  // Handle Selection fields (Employment Status, Job Grade, Performance Rating)
+  if (rule.field === AttendanceCriteriaField.EMPLOYMENT_STATUS ||
+      rule.field === AttendanceCriteriaField.JOB_GRADE ||
+      rule.field === AttendanceCriteriaField.PERFORMANCE_RATING) {
+    if (isSelectionValue(rule.value)) {
+      const labels = getSelectionLabels(rule.field, rule.value.selectedValues);
+      return `${subject} ${verb}: ${labels}`;
     }
   }
 

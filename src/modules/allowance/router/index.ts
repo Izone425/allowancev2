@@ -28,6 +28,17 @@ export const allowanceRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: 'reports',
+        name: 'allowance-reports',
+        component: () => import('../pages/AllowanceReportPage.vue'),
+        meta: {
+          title: 'Allowance Reports',
+          breadcrumb: 'Reports',
+          requiresAuth: true,
+          permissions: ['allowance.view']
+        }
+      },
+      {
         path: 'templates/new',
         name: 'allowance-template-create',
         component: () => import('../pages/AllowanceTemplateFormPage.vue'),
@@ -71,7 +82,8 @@ export const ROUTE_NAMES = {
   TEMPLATE_LIST: 'allowance-templates',
   TEMPLATE_CREATE: 'allowance-template-create',
   TEMPLATE_DETAILS: 'allowance-template-details',
-  TEMPLATE_EDIT: 'allowance-template-edit'
+  TEMPLATE_EDIT: 'allowance-template-edit',
+  REPORTS: 'allowance-reports'
 } as const;
 
 export default allowanceRoutes;

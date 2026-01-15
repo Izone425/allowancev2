@@ -1,7 +1,7 @@
 <template>
   <div class="assign-users-panel">
-    <!-- Action Toolbar -->
-    <div class="action-toolbar">
+    <!-- Action Toolbar (hidden in readonly mode) -->
+    <div v-if="!readonly" class="action-toolbar">
       <Button
         icon="pi pi-user-plus"
         class="p-button-primary"
@@ -40,7 +40,8 @@
         <div class="table-empty">
           <i class="pi pi-users empty-icon"></i>
           <span>No employees assigned yet</span>
-          <small>Click "Assign Employee" to add employees to this allowance</small>
+          <small v-if="!readonly">Click "Assign Employee" to add employees to this allowance</small>
+          <small v-else>This allowance has no employees assigned</small>
         </div>
       </template>
 
@@ -51,7 +52,7 @@
         </div>
       </template>
 
-      <Column selectionMode="multiple" headerStyle="width: 3rem" :showFilterMenu="false" class="checkbox-column" />
+      <Column v-if="!readonly" selectionMode="multiple" headerStyle="width: 3rem" :showFilterMenu="false" class="checkbox-column" />
 
       <Column field="userCode" header="Employee ID" sortable :showFilterMenu="false" style="min-width: 140px">
         <template #body="{ data }">
@@ -145,8 +146,9 @@
       </Column>
     </DataTable>
 
-    <!-- Assign Employee Drawer -->
+    <!-- Assign Employee Drawer (hidden in readonly mode) -->
     <Sidebar
+      v-if="!readonly"
       v-model:visible="showAssignDrawer"
       position="right"
       :style="{ width: '56rem' }"
@@ -363,11 +365,13 @@ const vTooltip = Tooltip;
 interface Props {
   templateId?: string | null;
   initialSelectedIds?: string[];
+  readonly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   templateId: null,
-  initialSelectedIds: () => []
+  initialSelectedIds: () => [],
+  readonly: false
 });
 
 const emit = defineEmits<{
