@@ -27,5 +27,3 @@ export const AllowanceTemplateListPage = () =>
   import('./pages/AllowanceTemplateListPage.vue');
 export const AllowanceTemplateFormPage = () =>
   import('./pages/AllowanceTemplateFormPage.vue');
-export const AllowanceTemplateDetailsPage = () =>
-  import('./pages/AllowanceTemplateDetailsPage.vue');
