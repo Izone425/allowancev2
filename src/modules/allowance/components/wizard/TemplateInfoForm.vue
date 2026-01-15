@@ -45,6 +45,59 @@
               <i :class="getTypeIcon(formData.type!)" class="type-icon-small"></i>
               <span>{{ getTypeLabel(formData.type!) }}</span>
             </div>
+            <!-- Compute in Payroll Toggle (below dropdown) -->
+            <div class="payroll-toggle-inline">
+              <template v-if="!readonly">
+                <InputSwitch
+                  inputId="computeToPayroll"
+                  :modelValue="formData.computeToPayroll"
+                  @update:modelValue="handleComputeToPayrollToggle($event)"
+                  class="small-switch"
+                />
+                <label for="computeToPayroll" class="payroll-toggle-label">Compute in Payroll</label>
+              </template>
+              <template v-else>
+                <span class="payroll-toggle-label">Compute in Payroll:</span>
+                <span class="payroll-toggle-value" :class="{ enabled: formData.computeToPayroll }">
+                  {{ formData.computeToPayroll ? 'Yes' : 'No' }}
+                </span>
+              </template>
+            </div>
+            <!-- Allowance Name (shown when computeToPayroll is OFF) -->
+            <div v-if="!formData.computeToPayroll" class="allowance-name-field">
+              <label for="allowanceName" class="field-label" :class="{ required: !readonly }">Allowance Name</label>
+              <template v-if="!readonly">
+                <InputText
+                  id="allowanceName"
+                  :modelValue="formData.allowanceName"
+                  @update:modelValue="emit('update', 'allowanceName', $event)"
+                  placeholder="e.g., Site Allowance"
+                  :class="{ 'p-invalid': errors.get('allowanceName') }"
+                  class="w-full"
+                />
+                <small v-if="errors.get('allowanceName')" class="p-error">{{ errors.get('allowanceName') }}</small>
+              </template>
+              <div v-else class="readonly-value">{{ formData.allowanceName || '-' }}</div>
+            </div>
+            <!-- Payroll Additional Item (shown when computeToPayroll is ON) -->
+            <div v-if="formData.computeToPayroll" class="allowance-name-field">
+              <label for="payrollAdditionalItem" class="field-label" :class="{ required: !readonly }">Payroll Additional Item</label>
+              <template v-if="!readonly">
+                <Dropdown
+                  id="payrollAdditionalItem"
+                  :modelValue="formData.payrollAdditionalItem"
+                  @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
+                  :options="payrollAdditionalItemOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select payroll item"
+                  :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
+                  class="w-full"
+                />
+                <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
+              </template>
+              <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
+            </div>
           </div>
 
           <!-- Calculation Mode for Daily type -->
@@ -74,28 +127,6 @@
               </div>
             </template>
             <div v-else class="readonly-value">{{ getCalcModeLabel(formData.dailyCalculationMode) }}</div>
-          </div>
-        </div>
-
-        <!-- Payroll Additional Item (for Daily type - both Fixed Daily and Hourly Rate) -->
-        <div v-if="formData.type === 'DAILY'" class="form-row">
-          <div class="form-field">
-            <label for="payrollAdditionalItem" class="field-label" :class="{ required: !readonly }">Payroll Additional Item</label>
-            <template v-if="!readonly">
-              <Dropdown
-                id="payrollAdditionalItem"
-                :modelValue="formData.payrollAdditionalItem"
-                @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-                :options="payrollAdditionalItemOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Select payroll item"
-                :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-                class="w-full"
-              />
-              <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
-            </template>
-            <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
           </div>
         </div>
 
@@ -137,7 +168,7 @@
         <template v-if="formData.type === 'MONTHLY'">
           <div class="form-row">
             <!-- Allowance Amount -->
-            <div class="form-field">
+            <div class="form-field full-width">
               <label for="monthlyAmount" class="field-label" :class="{ required: !readonly }">Allowance Amount</label>
               <template v-if="!readonly">
                 <div class="input-with-prefix">
@@ -157,26 +188,6 @@
                 <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
               </template>
               <div v-else class="readonly-value amount">{{ formatAmount(formData.amount) }}</div>
-            </div>
-
-            <!-- Payroll Items -->
-            <div class="form-field">
-              <label for="monthlyPayrollItem" class="field-label" :class="{ required: !readonly }">Payroll Items</label>
-              <template v-if="!readonly">
-                <Dropdown
-                  id="monthlyPayrollItem"
-                  :modelValue="formData.payrollAdditionalItem"
-                  @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-                  :options="payrollAdditionalItemOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Select payroll item"
-                  :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-                  class="w-full"
-                />
-                <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
-              </template>
-              <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
             </div>
           </div>
 
@@ -232,7 +243,7 @@
         <template v-if="formData.type === 'ONE_OFF'">
           <div class="form-row">
             <!-- Allowance Amount -->
-            <div class="form-field">
+            <div class="form-field full-width">
               <label for="oneOffAmount" class="field-label" :class="{ required: !readonly }">Allowance Amount</label>
               <template v-if="!readonly">
                 <div class="input-with-prefix">
@@ -252,26 +263,6 @@
                 <small v-if="errors.get('amount')" class="p-error">{{ errors.get('amount') }}</small>
               </template>
               <div v-else class="readonly-value amount">{{ formatAmount(formData.amount) }}</div>
-            </div>
-
-            <!-- Payroll Items -->
-            <div class="form-field">
-              <label for="oneOffPayrollItem" class="field-label" :class="{ required: !readonly }">Payroll Items</label>
-              <template v-if="!readonly">
-                <Dropdown
-                  id="oneOffPayrollItem"
-                  :modelValue="formData.payrollAdditionalItem"
-                  @update:modelValue="emit('update', 'payrollAdditionalItem', $event)"
-                  :options="payrollAdditionalItemOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Select payroll item"
-                  :class="{ 'p-invalid': errors.get('payrollAdditionalItem') }"
-                  class="w-full"
-                />
-                <small v-if="errors.get('payrollAdditionalItem')" class="p-error">{{ errors.get('payrollAdditionalItem') }}</small>
-              </template>
-              <div v-else class="readonly-value">{{ getPayrollItemLabel(formData.payrollAdditionalItem) }}</div>
             </div>
           </div>
 
@@ -511,10 +502,12 @@
 <script setup lang="ts">
 // PrimeVue Components
 import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
 import Checkbox from 'primevue/checkbox';
 import MultiSelect from 'primevue/multiselect';
+import InputSwitch from 'primevue/inputswitch';
 // Custom Components
 import AttendanceCriteriaBuilder from './AttendanceCriteriaBuilder.vue';
 import HourlyRateSectionInline from './HourlyRateSectionInline.vue';
@@ -587,6 +580,17 @@ function handleProrateToggle(value: boolean): void {
   }
 }
 
+function handleComputeToPayrollToggle(value: boolean): void {
+  emit('update', 'computeToPayroll', value);
+  if (value) {
+    // When enabling compute to payroll, clear the allowance name
+    emit('update', 'allowanceName', '');
+  } else {
+    // When disabling compute to payroll, clear the payroll item selection
+    emit('update', 'payrollAdditionalItem', '');
+  }
+}
+
 // Readonly helpers
 function getPayrollItemLabel(value: string): string {
   return payrollAdditionalItemOptions.find(o => o.value === value)?.label || value || '-';
@@ -650,7 +654,62 @@ function getLocationLabels(): string {
   overflow: hidden;
 }
 
+/* Inline Payroll Toggle in Header */
+.payroll-toggle-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payroll-toggle-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.payroll-toggle-value {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  padding: 0.125rem 0.5rem;
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.payroll-toggle-value.enabled {
+  color: #059669;
+  background: #d1fae5;
+}
+
+/* Allowance Name Field (when computeToPayroll is OFF) */
+.allowance-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+/* Small InputSwitch */
+:deep(.small-switch.p-inputswitch) {
+  width: 2rem;
+  height: 1rem;
+}
+
+:deep(.small-switch.p-inputswitch .p-inputswitch-slider:before) {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: -0.375rem;
+}
+
+:deep(.small-switch.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider:before) {
+  transform: translateX(0.875rem);
+}
+
 .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.625rem 1rem;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;

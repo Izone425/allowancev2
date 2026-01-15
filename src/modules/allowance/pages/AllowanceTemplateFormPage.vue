@@ -548,7 +548,10 @@ async function saveTemplate(status: AllowanceStatus): Promise<AllowanceTemplate>
     filterByWorkLocation: formData.value.filterByWorkLocation,
     applyOnWorkLocations: formData.value.applyOnWorkLocations,
     hourlyRateConfig: formData.value.hourlyRateConfig,
-    payrollAdditionalItem: formData.value.payrollAdditionalItem || undefined,
+    // Payroll Integration
+    computeToPayroll: formData.value.computeToPayroll,
+    payrollAdditionalItem: formData.value.computeToPayroll ? (formData.value.payrollAdditionalItem || undefined) : undefined,
+    allowanceName: !formData.value.computeToPayroll ? (formData.value.allowanceName || undefined) : undefined,
     // Attendance criteria (for Daily and Monthly types)
     attendanceCriteria: formData.value.attendanceCriteria?.groups?.length > 0
       ? formData.value.attendanceCriteria
@@ -635,6 +638,10 @@ async function loadTemplate(): Promise<void> {
       currency: template.currency,
       taxable: template.taxable,
       prorate: template.prorate ?? false,
+      // Payroll Integration
+      computeToPayroll: template.computeToPayroll ?? false,
+      payrollAdditionalItem: template.payrollAdditionalItem || '',
+      allowanceName: template.allowanceName || '',
       // Daily specific
       dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
       ratePerDay: template.ratePerDay || null,
@@ -648,7 +655,6 @@ async function loadTemplate(): Promise<void> {
       filterByWorkLocation: template.filterByWorkLocation || false,
       applyOnWorkLocations: template.applyOnWorkLocations || [],
       hourlyRateConfig: template.hourlyRateConfig || defaultHourlyRateConfig,
-      payrollAdditionalItem: template.payrollAdditionalItem || '',
       // Monthly specific
       prorateByJoinDate: template.prorateByJoinDate ?? false,
       prorateByLeaveDate: template.prorateByLeaveDate ?? false,

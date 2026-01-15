@@ -161,8 +161,10 @@ export interface AllowanceTemplate {
   applyOnWorkLocations?: string[];
   // Hourly rate configuration (when dailyCalculationMode = HOURLY_RATE)
   hourlyRateConfig?: HourlyRateConfig;
-  // Payroll Additional Item (for Daily type)
-  payrollAdditionalItem?: string;
+  // Payroll Integration
+  computeToPayroll?: boolean;           // Toggle to include in payroll calculation
+  payrollAdditionalItem?: string;       // Payroll category (required if computeToPayroll is true)
+  allowanceName?: string;               // Custom allowance name (used when computeToPayroll is false)
 
   // MONTHLY
   prorateByJoinDate?: boolean;
@@ -429,7 +431,9 @@ export interface CreateAllowanceTemplateRequest {
   filterByWorkLocation?: boolean;
   applyOnWorkLocations?: string[];
   hourlyRateConfig?: HourlyRateConfig;
+  computeToPayroll?: boolean;
   payrollAdditionalItem?: string;
+  allowanceName?: string;
   attendanceCriteria?: AttendanceCriteriaSet;
   // Monthly specific
   prorateByJoinDate?: boolean;
@@ -518,8 +522,10 @@ export interface TemplateInfoFormData {
   applyOnWorkLocations: string[];
   // Hourly rate config (when dailyCalculationMode = HOURLY_RATE)
   hourlyRateConfig: HourlyRateConfig;
-  // Payroll Additional Item (for Daily type)
+  // Payroll Integration
+  computeToPayroll: boolean;
   payrollAdditionalItem: string;
+  allowanceName: string;  // Used when computeToPayroll is OFF
   // Monthly specific
   prorateByJoinDate: boolean;
   prorateByLeaveDate: boolean;

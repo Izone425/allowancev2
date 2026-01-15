@@ -63,6 +63,10 @@ function createDefaultFormData(): TemplateInfoFormData {
     currency: 'MYR',
     taxable: true,
     prorate: false,
+    // Payroll Integration
+    computeToPayroll: false,
+    payrollAdditionalItem: '',
+    allowanceName: '',
     // Daily specific
     dailyCalculationMode: DailyCalculationMode.FIXED_DAILY,
     ratePerDay: null,
@@ -76,7 +80,6 @@ function createDefaultFormData(): TemplateInfoFormData {
     filterByWorkLocation: false,
     applyOnWorkLocations: [],
     hourlyRateConfig: createDefaultHourlyRateConfig(),
-    payrollAdditionalItem: '',
     // Monthly specific
     prorateByJoinDate: true,
     prorateByLeaveDate: false,
@@ -246,6 +249,24 @@ export function useFormValidation(editingId?: string | null) {
           }
         }
         break;
+
+      case 'payrollAdditionalItem':
+        // Required only when computeToPayroll is enabled
+        if (formData.value.computeToPayroll) {
+          if (!value || (value as string).trim() === '') {
+            return 'Payroll Additional Item is required when computing to payroll';
+          }
+        }
+        break;
+
+      case 'allowanceName':
+        // Required only when computeToPayroll is disabled
+        if (!formData.value.computeToPayroll) {
+          if (!value || (value as string).trim() === '') {
+            return 'Allowance Name is required';
+          }
+        }
+        break;
     }
 
     return null;
@@ -293,6 +314,22 @@ export function useFormValidation(editingId?: string | null) {
     if (endDateError) {
       errors.value.set('effectiveEnd', endDateError);
       validationErrors.push({ field: 'effectiveEnd', message: endDateError });
+    }
+
+    // Payroll integration validation
+    if (formData.value.computeToPayroll) {
+      const payrollItemError = validateField('payrollAdditionalItem');
+      if (payrollItemError) {
+        errors.value.set('payrollAdditionalItem', payrollItemError);
+        validationErrors.push({ field: 'payrollAdditionalItem', message: payrollItemError });
+      }
+    } else {
+      // Allowance name validation (when computeToPayroll is OFF)
+      const allowanceNameError = validateField('allowanceName');
+      if (allowanceNameError) {
+        errors.value.set('allowanceName', allowanceNameError);
+        validationErrors.push({ field: 'allowanceName', message: allowanceNameError });
+      }
     }
 
     // Code uniqueness (only if basic validation passed)
@@ -447,6 +484,10 @@ export function useFormValidation(editingId?: string | null) {
       currency: template.currency || 'MYR',
       taxable: template.taxable ?? true,
       prorate: template.prorate ?? false,
+      // Payroll Integration
+      computeToPayroll: template.computeToPayroll ?? false,
+      payrollAdditionalItem: template.payrollAdditionalItem || '',
+      allowanceName: template.allowanceName || '',
       // Daily specific
       dailyCalculationMode: template.dailyCalculationMode || DailyCalculationMode.FIXED_DAILY,
       ratePerDay: template.ratePerDay ?? null,
@@ -460,7 +501,6 @@ export function useFormValidation(editingId?: string | null) {
       filterByWorkLocation: template.filterByWorkLocation ?? false,
       applyOnWorkLocations: template.applyOnWorkLocations || [],
       hourlyRateConfig: template.hourlyRateConfig || createDefaultHourlyRateConfig(),
-      payrollAdditionalItem: template.payrollAdditionalItem || '',
       // Monthly specific
       prorateByJoinDate: template.prorateByJoinDate ?? true,
       prorateByLeaveDate: template.prorateByLeaveDate ?? false,

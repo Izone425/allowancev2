@@ -108,6 +108,8 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     amount: 50,
     currency: 'MYR',
     taxable: false,
+    computeToPayroll: true,
+    payrollAdditionalItem: 'TRANSPORT_ALLOWANCE',
     effectiveStart: '2024-01-01',
     effectiveEnd: null,
     status: 'ACTIVE',
@@ -257,6 +259,8 @@ const MOCK_TEMPLATES: AllowanceTemplate[] = [
     amount: 500,
     currency: 'MYR',
     taxable: true,
+    computeToPayroll: true,
+    payrollAdditionalItem: 'TRANSPORT_ALLOWANCE',
     effectiveStart: '2024-01-01',
     effectiveEnd: null,
     status: 'ACTIVE',
@@ -731,6 +735,10 @@ export const allowanceTemplateService = {
         currency: data.currency || 'MYR',
         taxable: data.taxable,
         prorate: data.prorate,
+        // Payroll Integration
+        computeToPayroll: data.computeToPayroll ?? false,
+        payrollAdditionalItem: data.computeToPayroll ? data.payrollAdditionalItem : undefined,
+        allowanceName: !data.computeToPayroll ? data.allowanceName : undefined,
         // Daily specific
         dailyCalculationMode: data.dailyCalculationMode,
         ratePerDay: data.ratePerDay,
@@ -744,7 +752,6 @@ export const allowanceTemplateService = {
         filterByWorkLocation: data.filterByWorkLocation,
         applyOnWorkLocations: data.applyOnWorkLocations,
         hourlyRateConfig: data.hourlyRateConfig,
-        payrollAdditionalItem: data.payrollAdditionalItem,
         attendanceCriteria: data.attendanceCriteria,
         // Monthly specific
         prorateByJoinDate: data.prorateByJoinDate,
@@ -806,6 +813,14 @@ export const allowanceTemplateService = {
         currency: data.currency ?? existingTemplate.currency,
         taxable: data.taxable ?? existingTemplate.taxable,
         prorate: data.prorate ?? existingTemplate.prorate,
+        // Payroll Integration
+        computeToPayroll: data.computeToPayroll ?? existingTemplate.computeToPayroll,
+        payrollAdditionalItem: (data.computeToPayroll ?? existingTemplate.computeToPayroll)
+          ? (data.payrollAdditionalItem ?? existingTemplate.payrollAdditionalItem)
+          : undefined,
+        allowanceName: !(data.computeToPayroll ?? existingTemplate.computeToPayroll)
+          ? (data.allowanceName ?? existingTemplate.allowanceName)
+          : undefined,
         // Daily specific
         dailyCalculationMode: data.dailyCalculationMode ?? existingTemplate.dailyCalculationMode,
         ratePerDay: data.ratePerDay ?? existingTemplate.ratePerDay,
@@ -819,7 +834,6 @@ export const allowanceTemplateService = {
         filterByWorkLocation: data.filterByWorkLocation ?? existingTemplate.filterByWorkLocation,
         applyOnWorkLocations: data.applyOnWorkLocations ?? existingTemplate.applyOnWorkLocations,
         hourlyRateConfig: data.hourlyRateConfig ?? existingTemplate.hourlyRateConfig,
-        payrollAdditionalItem: data.payrollAdditionalItem ?? existingTemplate.payrollAdditionalItem,
         attendanceCriteria: data.attendanceCriteria ?? existingTemplate.attendanceCriteria,
         // Monthly specific
         prorateByJoinDate: data.prorateByJoinDate ?? existingTemplate.prorateByJoinDate,

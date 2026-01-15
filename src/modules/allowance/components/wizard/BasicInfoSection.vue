@@ -8,7 +8,7 @@
         <div class="form-row">
           <!-- Name -->
           <div class="form-field">
-            <label for="name" class="field-label" :class="{ required: !readonly, 'readonly-label': readonly }">Allowance Name</label>
+            <label for="name" class="field-label" :class="{ required: !readonly, 'readonly-label': readonly }">Allowance Template Name</label>
             <InputText
               v-if="!readonly"
               id="name"

@@ -68,8 +68,16 @@
         <strong>Effective:</strong> {{ effectivePeriod }}
       </p>
 
-      <!-- Payroll item (Daily only) -->
-      <p v-if="payrollItemLabel" class="summary-line">
+      <!-- Compute to Payroll -->
+      <p class="summary-line">
+        <strong>Compute to Payroll:</strong>
+        <span :class="formData.computeToPayroll ? 'status-enabled' : 'status-disabled'">
+          {{ formData.computeToPayroll ? 'Yes' : 'No' }}
+        </span>
+      </p>
+
+      <!-- Payroll item (when computeToPayroll is enabled) -->
+      <p v-if="formData.computeToPayroll && payrollItemLabel" class="summary-line">
         <strong>Payroll Item:</strong> {{ payrollItemLabel }}
       </p>
 
@@ -526,11 +534,11 @@ const effectivePeriod = computed(() => {
 });
 
 // ---------------------------------------------------------------------------
-// COMPUTED - Payroll Item (Daily only)
+// COMPUTED - Payroll Item (when computeToPayroll is enabled)
 // ---------------------------------------------------------------------------
 
 const payrollItemLabel = computed(() => {
-  if (props.formData.type !== 'DAILY') return '';
+  if (!props.formData.computeToPayroll) return '';
   if (!props.formData.payrollAdditionalItem) return '';
 
   return PAYROLL_ADDITIONAL_ITEM_OPTIONS.find(
@@ -704,6 +712,23 @@ const payrollItemLabel = computed(() => {
 
 .summary-assignment strong {
   color: #1d4ed8;
+}
+
+/* Status indicators */
+.status-enabled {
+  color: #059669;
+  font-weight: 500;
+  background: #d1fae5;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+}
+
+.status-disabled {
+  color: #64748b;
+  font-weight: 500;
+  background: #f1f5f9;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
 }
 
 /* Responsive */
